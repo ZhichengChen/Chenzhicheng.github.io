@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>Twitter Scala 教程</title>
+        <title></title>
         <meta name="viewport" content="width=device-width">
 
         <!-- syntax highlighting CSS -->
@@ -18,10 +18,18 @@
           <div class="fill">
             <div class="container fixed">
               <h3>
-                <a href ="/" class="brand">Twitter Scala 教程</a>
+                <a href ="/" class="brand"></a>
               </h3>
               <ul class="nav secondary-nav">
                 
+                <li>
+                  <a href = "--.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="--.html" >下一节>></a>
+                </li>
                 
               </ul>
             </div>
@@ -29,15 +37,25 @@
         </div>
 
         <div class="container" style="padding-top:60px;">
-          <div id="home">
-  <h1>课程</h1>
-  <ul class="posts">
-    
-      <li><a href="/basics.html">基础一</a></li>
-    
-      <li><a href="/basics-continued.html">基础二</a></li>
-    
-  </ul>
+          <div id="post">
+课程包括
+
+*  
+*  
+*  
+*  
+*  
+*  
+*  
+*  
+*  
+*
+  
+<div class="highlight"><pre><code class="scala">
+</code></pre></div>
+
+
+
 </div>
 
         </div>

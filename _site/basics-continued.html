@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>基础二</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">基础二</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "basic.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="collections.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>课程包括</p>
+
+<ul>
+<li>应用 apply</li>
+
+<li>伴生类 objects</li>
+
+<li>函数就是对象 Functions are Objects</li>
+
+<li>包 packages</li>
+
+<li>模式匹配 pattern matching</li>
+
+<li>条件类 case classes</li>
+
+<li>try-catch-finally</li>
+</ul>
+
+<h2 id='_apply'>应用 apply</h2>
+
+<p>当class 或objects 没有main 的时候，apply 方法是一个很好的语法糖。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class Foo <span class='o'>{}</span>
+defined class Foo
+
+scala&gt; object FooMaker <span class='o'>{</span>
+    |    def apply<span class='o'>()</span> <span class='o'>=</span> new Foo
+    |  <span class='o'>}</span>
+defined module FooMaker
+
+scala&gt; val <span class='nv'>newFoo</span> <span class='o'>=</span> FooMaker<span class='o'>()</span>
+newFoo: <span class='nv'>Foo</span> <span class='o'>=</span> Foo@5b83f762
+</code></pre></div>
+<p>或者</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class Bar <span class='o'>{</span>
+    |    def apply<span class='o'>()</span> <span class='o'>=</span> 0
+    |  <span class='o'>}</span>
+defined class Bar
+
+scala&gt; val <span class='nv'>bar</span> <span class='o'>=</span> new Bar
+bar: <span class='nv'>Bar</span> <span class='o'>=</span> Bar@47711479
+
+scala&gt; bar<span class='o'>()</span>
+res8: <span class='nv'>Int</span> <span class='o'>=</span> 0
+</code></pre></div>
+<p>这里好像是我们的实例调用了一个方法，到后面我们还会看到更多。</p>
+
+<h2 id='_objects'>伴生类 objects</h2>
+
+<p>Objects 用来保持class 的一个单例。经常用来做工厂。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>object</span> <span class='nc'>Timer</span> <span class='o'>{</span>
+    <span class='k'>var</span> <span class='n'>count</span> <span class='k'>=</span> <span class='mi'>0</span>
+
+    <span class='k'>def</span> <span class='n'>currentCount</span><span class='o'>()</span><span class='k'>:</span> <span class='kt'>Long</span> <span class='o'>=</span> <span class='o'>{</span>
+        <span class='n'>count</span> <span class='o'>+=</span> <span class='mi'>1</span>
+        <span class='n'>count</span>
+    <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>那么怎样使用呢？</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Timer.currentCount<span class='o'>()</span>
+res0: <span class='nv'>Long</span> <span class='o'>=</span> 1
+</code></pre></div>
+<p>Classes 和 Objects 可以有相同的名字。object 叫做‘伴生类’。我们通常把伴生类当作工厂。这里有一个琐碎的例子仅仅是免去总是用new 来创建一个实例的麻烦。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>Bar</span><span class='o'>(</span><span class='n'>foo</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span>
+
+<span class='k'>object</span> <span class='nc'>Bar</span><span class='o'>{</span>
+    <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>foo</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Bar</span><span class='o'>(</span><span class='n'>foo</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='_functions_are_objects'>函数就是对象 Functions are Objects</h2>
+
+<p>在Scala 里，我们经常谈论面向对象的函数式编程语言。这是什么意思呢？究竟什么是函数式编程语言呢？</p>
+
+<p>函数是一组特质。特殊的，函数接受一个作为Function1 特质的参数。这个特质定义了我们之前学到的apply() 语法糖，允许你向调用函数那样调用对象。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; object addOne extends Function1<span class='o'>[</span>Int, Int<span class='o'>]{</span>
+    |    def apply<span class='o'>(</span>m: Int<span class='o'>)</span>:Int <span class='o'>=</span> m + 1
+    |  <span class='o'>}</span>
+defined module addOne
+
+scala&gt; addOne<span class='o'>(</span>1<span class='o'>)</span>
+res2: <span class='nv'>Int</span> <span class='o'>=</span> 2
+</code></pre></div>
+<p>这里有一个传入22的Function1。为什么是22？这是一个随机的魔法数字。在我看来只有用22当作参数传入函数才能工作。（搞毛？）</p>
+
+<p>apply 的语法糖帮助object 和函数式编程的二元性统一。你可以像函数那样传递classes ，同时函数只是一个classes 的幕后的实例。</p>
+
+<p>这是不是意味着每一次你在class 里面定义一个方法，你实际上就获得了一个Function* 的实例呢？不，classes 里的方法就是方法。方法是在 Function* 实例repl 单独定义的。</p>
+
+<p>Classes 也可以扩展函数，这些函数可以通过() 调用。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class AddOne extends Function1<span class='o'>[</span>Int, Int<span class='o'>]</span> <span class='o'>{</span>
+    |    def apply<span class='o'>(</span>m: Int<span class='o'>)</span>:Int <span class='o'>=</span> m + 1
+    |  <span class='o'>}</span>
+defined class AddOne
+
+scala&gt; val <span class='nv'>plusOne</span> <span class='o'>=</span> new AddOne<span class='o'>()</span>
+plusOne: <span class='nv'>AddOne</span> <span class='o'>=</span> &lt;function1&gt;
+
+scala&gt; plusOne<span class='o'>(</span>1<span class='o'>)</span>
+res0: <span class='nv'>Int</span> <span class='o'>=</span> 2
+</code></pre></div>
+<p>extends Function1<span>Int, Int</span> 的一个比较好的简写是extends(Int =&gt; Int)</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>AddOne</span> <span class='k'>extends</span> <span class='o'>(</span><span class='nc'>Int</span> <span class='k'>=&gt;</span> <span class='nc'>Int</span><span class='o'>){</span>
+    <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>m</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='n'>m</span> <span class='o'>+</span> <span class='mi'>1</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='_packages'>包 packages</h2>
+
+<p>你可以把你的代码组织到包里面。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.example</span>
+</code></pre></div>
+<p>在文件的最顶部会声明你这个包里文件的所有。</p>
+
+<p>值和函数不能在class 或 object 里面定义。Object 是组织动态函数不错的工具。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.example</span>
+
+<span class='k'>object</span> <span class='nc'>colorHolder</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='nc'>BLUE</span> <span class='k'>=</span> <span class='s'>&quot;Blue&quot;</span>
+    <span class='k'>val</span> <span class='nc'>RED</span> <span class='k'>=</span> <span class='s'>&quot;Red&quot;</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>现在你可以直接访问里面的成员了。</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>println</span><span class='o'>(</span><span class='s'>&quot;the color is: &quot;</span><span class='o'>+</span><span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>example</span><span class='o'>.</span><span class='n'>colorHolder</span><span class='o'>.</span><span class='nc'>BLUE</span><span class='o'>)</span>
+</code></pre></div>
+<p>注意当定义这个对象的时候scala repl 的表述：</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>object</span> <span class='nc'>colorHolder</span><span class='o'>{</span>
+     <span class='o'>|</span>   <span class='k'>val</span> <span class='nc'>Blue</span> <span class='k'>=</span> <span class='s'>&quot;Blue&quot;</span>
+     <span class='o'>|</span>   <span class='k'>val</span> <span class='nc'>Red</span> <span class='k'>=</span> <span class='s'>&quot;Red&quot;</span>
+     <span class='o'>|</span> <span class='o'>}</span>
+<span class='n'>defined</span> <span class='n'>module</span> <span class='n'>colorHolder</span>
+</code></pre></div>
+<p>这或许给了你一点小暗示，Scala 设计者经常把objects 设计成为Scala 模组系统的一部分。</p>
+
+<h2 id='_pattern_matching'>模式匹配 pattern matching</h2>
+
+<p>这可是Scala 里面最有用的部分之一。</p>
+
+<p>匹配值：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>times</span> <span class='k'>=</span> <span class='mi'>1</span>
+
+<span class='n'>times</span> <span class='k'>match</span> <span class='o'>{</span>
+    <span class='k'>case</span> <span class='mi'>1</span> <span class='k'>=&gt;</span> <span class='s'>&quot;one&quot;</span>
+    <span class='k'>case</span> <span class='mi'>2</span> <span class='k'>=&gt;</span> <span class='s'>&quot;two&quot;</span>
+    <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='s'>&quot;some other number&quot;</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>通过向导匹配：</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>times</span> <span class='k'>match</span> <span class='o'>{</span>
+    <span class='k'>case</span> <span class='n'>i</span> <span class='k'>if</span> <span class='n'>i</span> <span class='o'>==</span> <span class='mi'>1</span> <span class='k'>=&gt;</span> <span class='s'>&quot;one&quot;</span>
+    <span class='k'>case</span> <span class='n'>i</span> <span class='k'>if</span> <span class='n'>i</span> <span class='o'>==</span> <span class='mi'>2</span> <span class='k'>=&gt;</span> <span class='s'>&quot;two&quot;</span>
+    <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='s'>&quot;some other number&quot;</span> 
+<span class='o'>}</span>
+</code></pre></div>
+<p>注意我们是怎么获得变量i里面的值的。</p>
+
+<p>最后一个case 的_ 是一个通配符；它确保我们可以处理任何陈述。否则当你传入一个不匹配的数时会抛出一个运行时异常。我们以后会讨论它。</p>
+
+<p>也可以看看Effective Scala 的观点when to use pattern matchingrogramming-Pattern matching)以及pattern matching formattingatching)。A Tour of Scala 也有描述<a href='http://www.scala-lang.org/node/120'>Pattern Matching</a>。</p>
+
+<h3 id='id19'>匹配类型</h3>
+
+<p>你也可以用match 匹配处理不同类型的不同值。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>bigger</span><span class='o'>(</span><span class='n'>o</span><span class='k'>:</span> <span class='kt'>Any</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Any</span> <span class='o'>=</span> <span class='o'>{</span>
+    <span class='n'>o</span> <span class='k'>match</span> <span class='o'>{</span>
+        <span class='k'>case</span> <span class='n'>i</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='kt'>if</span> <span class='kt'>i</span> <span class='kt'>&lt;</span> <span class='err'>0</span> <span class='o'>=&gt;</span> <span class='n'>i</span><span class='o'>-</span><span class='mi'>1</span>
+        <span class='k'>case</span> <span class='n'>i</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=&gt;</span> <span class='n'>i</span> <span class='o'>+</span> <span class='mi'>1</span>
+        <span class='k'>case</span> <span class='n'>d</span><span class='k'>:</span> <span class='kt'>Double</span> <span class='kt'>if</span> <span class='kt'>d</span> <span class='kt'>&lt;</span> <span class='err'>0</span><span class='kt'>.</span><span class='err'>0</span> <span class='o'>=&gt;</span> <span class='n'>d</span> <span class='o'>-</span> <span class='mf'>0.1</span>
+        <span class='k'>case</span> <span class='n'>d</span><span class='k'>:</span> <span class='kt'>Double</span> <span class='o'>=&gt;</span> <span class='n'>d</span> <span class='o'>+</span> <span class='mf'>0.1</span>
+        <span class='k'>case</span> <span class='n'>text</span><span class='k'>:</span> <span class='kt'>String</span> <span class='o'>=&gt;</span> <span class='n'>text</span> <span class='o'>+</span> <span class='s'>&quot;s&quot;</span>
+    <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h3 id='class_'>匹配class 成员</h3>
+
+<p>还记得我们之前的 calculator吧。</p>
+
+<p>让我们来通过类型来给它们分类。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>calcType</span><span class='o'>(</span><span class='n'>calc</span><span class='k'>:</span> <span class='kt'>Calculator</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>calc</span> <span class='k'>match</span> <span class='o'>{</span>
+    <span class='k'>case</span> <span class='n'>calc</span><span class='o'>.</span><span class='n'>brand</span> <span class='o'>==</span> <span class='s'>&quot;hp&quot;</span> <span class='o'>&amp;&amp;</span> <span class='n'>calc</span><span class='o'>.</span><span class='n'>model</span> <span class='o'>==</span> <span class='s'>&quot;20B&quot;</span> <span class='k'>=&gt;</span> <span class='s'>&quot;financial&quot;</span>
+    <span class='k'>case</span> <span class='n'>calc</span><span class='o'>.</span><span class='n'>brand</span> <span class='o'>==</span> <span class='s'>&quot;hp&quot;</span> <span class='o'>&amp;&amp;</span> <span class='n'>calc</span><span class='o'>.</span><span class='n'>model</span> <span class='o'>==</span> <span class='s'>&quot;48G&quot;</span> <span class='k'>=&gt;</span> <span class='s'>&quot;scientific&quot;</span>
+    <span class='k'>case</span> <span class='n'>calc</span><span class='o'>.</span><span class='n'>brand</span> <span class='o'>==</span> <span class='s'>&quot;hp&quot;</span> <span class='o'>&amp;&amp;</span> <span class='n'>calc</span><span class='o'>.</span><span class='n'>model</span> <span class='o'>==</span> <span class='s'>&quot;30B&quot;</span> <span class='k'>=&gt;</span> <span class='s'>&quot;business&quot;</span>
+    <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='s'>&quot;unknow&quot;</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>哇塞，从前处理这类问题太痛苦了。感谢Scala 给我们提供了这些特别的好工具。</p>
+
+<h2 id='_case_classes'>条件类 case classes</h2>
+
+<p>case class 对于方便的存储和匹配class 里面的内容很有用。你可以不用new 就可以构建它们。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; <span class='k'>case </span>class Calculator <span class='o'>(</span>brand:String, model: String<span class='o'>)</span>
+defined class Calculator
+
+scala&gt; val <span class='nv'>hp20b</span> <span class='o'>=</span> Calculator<span class='o'>(</span><span class='s2'>&quot;hp&quot;</span>, <span class='s2'>&quot;20b&quot;</span><span class='o'>)</span>
+hp20b: <span class='nv'>Calculator</span> <span class='o'>=</span> Calculator<span class='o'>(</span>hp,20b<span class='o'>)</span>
+</code></pre></div>
+<p>case classes 自动的基于构造参数生成equality 和比较好的toString 方法。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>hp20b</span> <span class='o'>=</span> Calculator<span class='o'>(</span><span class='s2'>&quot;hp&quot;</span>,<span class='s2'>&quot;20b&quot;</span><span class='o'>)</span>
+hp20b: <span class='nv'>Calculator</span> <span class='o'>=</span> Calculator<span class='o'>(</span>hp,20b<span class='o'>)</span>
+
+scala&gt; val <span class='nv'>hp20B</span> <span class='o'>=</span> Calculator<span class='o'>(</span><span class='s2'>&quot;hp&quot;</span>,<span class='s2'>&quot;20b&quot;</span><span class='o'>)</span>
+hp20B:Calculator <span class='o'>=</span> Calculator<span class='o'>(</span>hp,20b<span class='o'>)</span>
+
+scala&gt; <span class='nv'>hp20b</span> <span class='o'>==</span> hp20B
+res6: <span class='nv'>Boolean</span> <span class='o'>=</span> <span class='nb'>true</span>
+</code></pre></div>
+<p>case classses 有和正常类一样的方法。</p>
+
+<h6 id='case_classes'>含有模式匹配的case classes</h6>
+
+<p>case classes 是用模式匹配定义的。让我们来简化一下我们之前的calculator 分类器。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>hp20b</span> <span class='k'>=</span> <span class='nc'>Calculator</span><span class='o'>(</span><span class='s'>&quot;hp&quot;</span><span class='o'>,</span><span class='s'>&quot;20B&quot;</span><span class='o'>)</span>
+<span class='k'>val</span> <span class='n'>hp30b</span> <span class='k'>=</span> <span class='nc'>Calculator</span><span class='o'>(</span><span class='s'>&quot;hp&quot;</span><span class='o'>,</span><span class='s'>&quot;30B&quot;</span><span class='o'>)</span>
+
+<span class='k'>def</span> <span class='n'>calcType</span><span class='o'>(</span><span class='n'>calc</span><span class='k'>:</span> <span class='kt'>Calculator</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>calc</span> <span class='k'>match</span> <span class='o'>{</span>
+    <span class='k'>case</span> <span class='nc'>Calculator</span><span class='o'>(</span><span class='s'>&quot;hp&quot;</span><span class='o'>,</span><span class='s'>&quot;20B&quot;</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='s'>&quot;financial&quot;</span>
+    <span class='k'>case</span> <span class='nc'>Calculator</span><span class='o'>(</span><span class='s'>&quot;hp&quot;</span><span class='o'>,</span><span class='s'>&quot;48G&quot;</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='s'>&quot;scientific&quot;</span>
+    <span class='k'>case</span> <span class='nc'>Calculator</span><span class='o'>(</span><span class='s'>&quot;hp&quot;</span><span class='o'>,</span><span class='s'>&quot;30B&quot;</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='s'>&quot;business&quot;</span>
+    <span class='k'>case</span> <span class='nc'>Calculator</span><span class='o'>(</span><span class='n'>ourBrand</span><span class='o'>,</span><span class='n'>ourModel</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='s'>&quot;Calculator: %s is of unknown type&quot;</span><span class='o'>.</span><span class='n'>format</span><span class='o'>(</span><span class='n'>ourBrand</span><span class='o'>,</span> <span class='n'>ourModel</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>最后一个匹配的另一种写法是。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>case</span> <span class='nc'>Calculator</span><span class='o'>(</span><span class='k'>_</span><span class='o'>,</span> <span class='k'>_</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='s'>&quot;Calculator of unknown type&quot;</span>
+</code></pre></div>
+<p>或者我们只是让它更简单的而不用指定它是一个Calculator。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>case</span> <span class='k'>_=&gt;</span> <span class='s'>&quot;Calculator of unknown type&quot;</span>
+</code></pre></div>
+<p>或者我们可以使用其他名字重新绑定：</p>
+
+<p><div class='highlight'><pre><code class='scala'><span class='k'>case</span> <span class='n'>c</span><span class='nd'>@Calculator</span><span class='o'>(</span><span class='k'>_</span><span class='o'>,</span> <span class='k'>_</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='s'>&quot;Calculator: %s of unknown type&quot;</span><span class='o'>.</span><span class='n'>format</span><span class='o'>(</span><span class='n'>c</span><span class='o'>)</span>
+</code></pre></div></p>
+
+<h2 id='trycatchfinally'>try-catch-finally</h2>
+
+<p>异常在Scala 里通常是try-catch-finally 或使用模式匹配。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>try</span><span class='o'>{</span>
+    <span class='n'>remoteCalculatorService</span><span class='o'>.</span><span class='n'>add</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span><span class='mi'>2</span><span class='o'>)</span>
+<span class='o'>}</span><span class='k'>catch</span><span class='o'>{</span>
+    <span class='k'>case</span> <span class='n'>e</span><span class='k'>:</span> <span class='kt'>ServeletIsDownException</span> <span class='o'>=&gt;</span> <span class='n'>log</span><span class='o'>.</span><span class='n'>error</span><span class='o'>(</span><span class='n'>e</span><span class='o'>,</span> <span class='s'>&quot;the remote calculator servieces is unavailable. should have kept your trusty HP.&quot;</span><span class='o'>)</span>
+<span class='o'>}</span><span class='k'>finally</span><span class='o'>{</span>
+    <span class='n'>remoteCalculatorService</span><span class='o'>.</span><span class='n'>close</span><span class='o'>()</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>try 也可以是面向对象的表达式</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>result</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='k'>try</span> <span class='o'>{</span>
+    <span class='n'>remoteCalculatorService</span><span class='o'>.</span><span class='n'>add</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span><span class='mi'>2</span><span class='o'>)</span>
+<span class='o'>}</span><span class='k'>catch</span><span class='o'>{</span>
+    <span class='k'>case</span> <span class='n'>e</span><span class='k'>:</span> <span class='kt'>SeverIsDownException</span> <span class='o'>=</span> <span class='o'>&gt;</span> <span class='o'>{</span>
+        <span class='n'>log</span><span class='o'>.</span><span class='n'>error</span><span class='o'>(</span><span class='n'>e</span><span class='o'>,</span> <span class='s'>&quot;the remote calculator service is unavailable. should have kept trsty HP.&quot;</span><span class='o'>)</span>
+        <span class='mi'>0</span>
+    <span class='o'>}</span>
+<span class='o'>}</span><span class='k'>finally</span><span class='o'>{</span>
+    <span class='n'>remoteCalculatorService</span><span class='o'>.</span><span class='n'>close</span><span class='o'>()</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这并不是什么出色的编程风格，就像其他Scala 代码一样，仅仅是一个try-catch-finally 捕获表达式里的异常。</p>
+
+<p>最后将要在异常已经被处理后调用，这并不是表达式的一部分。</p>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>
