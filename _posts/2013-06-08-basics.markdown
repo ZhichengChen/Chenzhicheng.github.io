@@ -1,0 +1,502 @@
+---
+layout: post
+title:  "基础一"
+next_link:   basics-continued 
+date:   2013-06-08 10:51:24
+categories: jekyll update
+---
+
+课程包括
+
+*  关于课程  About this class
+*  表达式  experssions
+*  值  values
+*  函数  functions
+*  类 classes
+*  继承基础  basic inheritance
+*  接口 traits
+*  类型 types
+
+## 关于课程
+
+开始的几周涵盖了基本语句和概念，然后我们会从一些练习开始。
+
+一些例子可能会通过解释器的形式给出，其余的会在源文件里。
+
+通过一个可见的解释器可以让探索问题更容易。
+
+### 为什么是Scala
+
+* 有表现力 Expressive
+  * First-class 函数
+  * 闭包 Closures
+* 简洁 Concise
+  * 类型推断 Type inference
+  * 函数创造文字句法 Literal syntax for function creation
+* Java 互操作
+  * 可以重用Java 类库
+  * 可以重用Java 工具
+  * 没有性能损失 No performance penalty
+
+###Scala 怎么样
+
+* 编译成java 字节码
+* 可以在任意标准JVM 里运行
+  * 甚至在一些非标准的JVM 比如Dalvik
+  * Scala 编译器是由Java 编译器的作者写的
+
+###Scala 的一些思考
+
+Scala 不是一个更好的Java。你应当用一个新的思维来学习它 - 你应该学习在这个课程之外的更多东西。
+
+###从解释器开始
+
+从sbt 控制台开始。
+
+{% highlight bash %}
+
+ $ sbt console
+ 
+ [...]
+ 
+ Welcome to Scala version 2.8.0.final (Java HotSpot(TM) 64-Bit Server VM, Java 1.6.0_20).
+ Type in expressions to have them evaluated.
+ Type :help for more information.
+ 
+ scala> 
+
+{% endhighlight %}
+
+## 表达式
+
+{% highlight bash %}
+
+scala> 1 + 1
+res0: Int = 2
+
+res0:Int = 2
+
+{% endhighlight%}
+
+res0 是解释器自动为你的表达式创建的值名字。它有一个Int 类型包含了一个Integer 2。
+
+(几乎)Scala 里面所有的东西都是一个表达式。
+
+## 值
+
+你也可以为表达式结果指定一个名字。
+
+{% highlight bash %}
+
+scala> val two = 1+1
+two: Int = 2
+
+{% endhighlight%}
+
+### 变量
+
+如果你想改变绑定的值，你可以使用var 来代替val。
+
+{% highlight bash %}
+
+scala> var name = "steve"
+name:java.lang.String = steve
+
+scala> name = "marius"
+name: java.lang.String = marius
+
+{% endhighlight%}
+
+## 函数
+
+你可以用def 创建一个函数。
+
+
+{% highlight bash %}
+
+scala> def addOne(m:Int):Int = m + 1
+addOne:(m:Int)Int
+
+{% endhighlight%}
+
+在Scala 里，你可以为函数参数指定类型签名。然后解释器就会很高兴的把类型签名返回给你。
+
+
+{% highlight bash %}
+
+scala> val three = addOne(2)
+three: Int = 3
+
+{% endhighlight%}
+
+在没有参数的情况下你可以省略括号。
+
+
+{% highlight bash %}
+
+scala> def three() = 1 + 2
+three: ()Int
+
+scala> three()
+res2: Int = 3
+
+scala> three
+res3: Int = 3
+
+{% endhighlight%}
+
+###匿名函数
+
+你也可以创建一个匿名函数
+
+
+{% highlight bash %}
+
+scala> (x: Int) => x + 1
+res2: (Int) => Int =<function>
+
+{% endhighlight%}
+
+你可传递匿名函数，或者把他们保存到vals里。
+
+
+{% highlight bash %}
+
+scala> val addOne = (x: Int) => x + 1
+addOne: (Int) => Int = <function1>
+
+scala> addOne(1)
+res4: Int = 2
+
+{% endhighlight%}
+
+如果你的函数有很多表达式，那么你可以使用 {} 来给自己留点喘息之地。
+
+
+{% highlight bash %}
+
+def timeTwo(i: Int):Int = {
+    println("hello world")
+    i * 2
+}
+
+{% endhighlight%}
+
+这样来定义匿名函数也是可以的。
+
+
+{% highlight bash %}
+
+scala> { i: Int =>
+    println("hello world")
+    i * 2 
+}
+res0: (Int) => Int = <function>
+
+{% endhighlight%}
+
+当把匿名函数当作参数传递时，你会经常看见这种用法。
+
+###局部应用
+
+你可以通过下划线来局部应用一个函数，这像是给你了另一个函数。Scala 使用下划线来代表不同的上下文环境的不同东西，但是通常你可以把它看成是未命名的魔法通配符。在{_ + 2}这个上下文环境意味着一个未命名的参数。你可以这样使用它：
+
+
+{% highlight bash %}
+
+scala> def adder(m: Int,n: Int) = m + n
+adder: (m: Int,n: Int)Int
+
+{% endhighlight%}
+
+{% highlight bash %}
+
+scala> val add2 = adder(2, _:Int)
+add2: (Int) => Int = <function1>
+
+scala> add2(3)
+res50:Int = 5
+
+{% endhighlight%}
+
+你可局部应用参数列表里的任意一个参数，而不仅仅是最后一个。
+
+###Curried functions
+
+有时候让别人为你的函数在当下应用一些参数过一会又请用其它参数很有意义。
+
+这是让你构建两个数的乘法的例子。在第一个调用点，你将要决定哪一个是乘数在另一个调用点你又要决定被乘数。
+
+
+{% highlight bash %}
+
+scala> def muliply(m: Int)(n: Int): Int = m * n
+mutiply: (m:Int)(n:Int)Int
+
+{% endhighlight%}
+
+你可以直接用所有的参数来调用它。
+
+
+{% highlight bash %}
+
+scala> mutiply(2)(3)
+res0: Int = 6
+
+{% endhighlight%}
+
+你也可以第一步填充第一个参数，第二步填充第二个参数。
+
+
+{% highlight bash %}
+
+scala> val timesTwo = multiply(2) _
+timesTwo: (Int) => Int = <function1>
+
+scala> timesTwo(3)
+res1: Int = 6
+
+{% endhighlight%}
+
+你可以应用于任何含有多个参数的函数然后curry 它。让我们试试之前的adder。
+
+
+{% highlight bash %}
+
+scala> (adder _).curried
+res1: (Int) => (Int) => Int = <function1>
+
+{% endhighlight%}
+
+####变量长度参数
+
+方法有一个特殊的语法，可以接受重复类型的参数。要给String 的captitalize 函数应用多个字符串，你可以这样写。
+
+
+{% highlight bash %}
+
+def capitalizeAll(args: String*) = {
+    args.map { arg =>
+        arg.capitalize
+    }
+}
+
+scala> captitalizeAll("rarity", "applejack")
+res2: Seq[String] = ArrayBuffer(Rarity, Applejack)
+
+{% endhighlight%}
+
+## 类
+
+
+{% highlight bash %}
+
+scala> class Calculator{
+     |   val brand: String = "HP"
+     |   val add(m: Int,n: Int): Int = m + n
+     |   }
+defined class Calculator
+
+scala> val calc = new Calculator
+calc: Calculator = Calculator
+
+scala> calc.add(1, 2)
+res1: Int = 3
+
+scala> calc.brand
+res2:String = "HP"
+
+{% endhighlight%}
+
+Contained 是一个通过def 定义的方法和 val 定义的field 。方法只是可以访问class 的state 的函数。
+
+###构造器
+
+构造器是一个特殊的方法，他们是在你class 定义代码之外的方法。让我们来扩展我们的Calculator 例子来接受一个构造器参数，然后使用它初始化内部state。
+
+ 
+{% highlight scala  %}
+
+class Calculator(brand:String){
+    /**
+     * 构造器
+     */
+    val color: String = if (brand == "T1"){
+        "blue"
+    } else if (brand == "HP"){
+        "black"
+    } else {
+        "white"
+    }
+    // 一个内部方法
+    def add(m: Int,n: Int): Int = m + n
+}
+
+{% endhighlight%}
+
+注意上面两种不同的注释方法。
+
+你可以使用构造器来构造一个实例。
+
+
+{% highlight bash %}
+
+scala> val calc = new Calculator("HP")
+calc: Calculator = Calculator@1e64cc4d
+
+scala> calc.color
+res0: String = black
+
+{% endhighlight%}
+
+###表达式
+
+BasciCalulator 例子给我们一个Scala 面向对象表达式的例子。color 值的限定基于if/else 表达式。Scala 是高度面向对象的表达式：很多东西都是公式而不语句。
+
+###旁白：函数和方法
+
+
+{% highlight bash %}
+
+scala> class C {
+     |   var acc = 0
+     |   def minc = { acc += 1 }
+     |   val finc = { () => acc += 1 }
+     | }
+defined class C
+
+scala> val c = new C
+c: C = C@1af1bd6
+
+scala> c.minc // calls c.minc()
+
+scala> c.finc // returns the function as a value:
+res2: () => Unit = <function0>
+
+{% endhighlight%}
+
+当你调用一个没有括号的函数时，你可能会想：“艾马，我觉得我已经知道Scala 的函数怎样工作了，但是实际上不是这样不对。难道它们只是在某些时候需要括号？” 你可能了解函数，但是用方法吧。
+
+实践证明，当你对方法和函数的区别感到迷迷糊糊时你也可以用Scala 来做好多事情。如果你是Scala 小白，并且google 了一下 difference scala function method，你可能就更糊涂了。这并不是意味着你在使用Scala 的时候稀里糊涂。仅仅是因为函数和方法的区别太细微了，弄明白它得扣好多语言的很深的部分。
+
+## 继承基础
+
+
+{% highlight scala  %}
+
+class ScientificCalculator(brand: String) extends Calulator(brand) {
+    def log(m: Double,base: Double) = math.log(m) / math.log(base)
+}
+
+{% endhighlight%}
+
+看Effective Scala 里面指出了如果子类是在和超类没什么不同 [类型别名](http://twitter.github.com/effectivescala/#Types%20and%20Generics-Type%20aliases)比extends 好的多。A Tour of Scala 描述了 [子类](http://www.scala-lang.org/node/125)。
+
+###重载方法
+
+{% highlight bash %}
+
+class EvenMoreScientificCalculator(brand:String) extends ScientificCalculator(brand) {
+    def log(m: Int):Double = log(m,math.exp(1))
+}
+
+{% endhighlight%}
+
+###抽象类
+
+你可以定义一个抽象类，一个定义了一些方法却并没有实现的类。子类可以继承自抽象类然后扩展这些方法。你不能为抽象类创建一个实例。
+
+
+{% highlight bash %}
+
+scala> abstract class Shape {
+    |    def getArea():Int //子类必须定义它
+    | }
+defined class Shape
+
+scala> class Circle(r: Int) extends Shape{
+    |    def getArea():Int = { r * r * 3}
+    | }
+defined class Circle
+
+scala> val s = new Shape
+<console>:8: error: class Shape is abstract; cannot be instantiated
+       val s = new Shape
+               ^
+
+scala> val c = new Circle(2)
+c: Circle = Circle@65c0035b
+
+{% endhighlight%}
+
+## 接口
+
+接口是一个你可以扩展或者mixin 到你的类的field 和行为的集合。
+
+
+{% highlight scala  %}
+
+trait Car {
+    val brand: String
+}
+
+trait Shiny {
+    val shineRefraction: Int
+}
+
+{% endhighlight%}
+
+{% highlight scala  %}
+
+class BMW extends Car {
+    val brand = "BMW"
+}
+
+{% endhighlight%}
+
+一个类可以使用with 关键字扩展自多个接口：
+
+{% highlight scala  %}
+
+class BMW extends Car with Shiny{
+    val brand = "BMW"
+    val shineRefraction = 12
+}
+
+{% endhighlight %}
+
+也可以看看Effective Scala 里面对[接口](http://twitter.github.com/effectivescala/#Object+oriented+programming-Traits)的观点。
+
+*你什么时候想要用接口来代替一个抽象类？*如果你想定义一个类接口的类型，你可呢姑娘会发现在接口和抽象类之间选择会很痛苦。每一个都会让你定义一些行为，然后通过扩展类来定义其它的行为。一些好的建议：
+
+* 尽量用接口。一个类可以很方便的继承自好多接口，但只能继承自一个clasis。
+* 如果你需要构造参数，用抽象类吧。抽象类构造器可以接受参数，接口就不行了。比如，你不能这样，trait t(i: Int) {}; i 参数是非法的。
+
+你不是第一个问这个问题的人。在这里看到更完整的答案,StackOverflow:[stackoverflow:Scala traits vs abstract classes](http://stackoverflow.com/questions/1991042/scala-traits-vs-abstract-classes)，[Difference between Abstract Class and Trait](http://stackoverflow.com/questions/2005681/difference-between-abstract-class-and-trait),Programming in Scala:[To trait, or not to tit, or not to trait?](http://www.artima.com/pins1ed/traits.html#12.7)。
+
+
+## 类型
+
+之前，你看到了我们定义了一个接受Int 的函数，Int 就是Number 类型。函数可以是通用的可以接受任何类型。当这发生时，你会看到方括号语法的类型参数介绍。这是一个通用Keys 和Values 的Cache 的例子。
+
+
+{% highlight scala  %}
+
+trait Cache[K,V] {
+    def get(key: k): V
+    def put(key: K,value: V)
+    def delete(key: K)
+}
+
+{% endhighlight %}
+
+方法也可以有参数介绍介绍：
+
+
+{% highlight scala  %}
+
+def remove[K](keys: K)
+
+}
+
+{% endhighlight %}
