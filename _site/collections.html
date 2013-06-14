@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>基础二</title>
+        <title>集合量</title>
         <meta name="viewport" content="width=device-width">
 
         <!-- syntax highlighting CSS -->
@@ -18,13 +18,17 @@
           <div class="fill">
             <div class="container fixed">
               <h3>
-                <a href ="/" class="brand">基础二</a>
+                <a href ="/" class="brand">集合量</a>
               </h3>
               <ul class="nav secondary-nav">
                 
+                <li>
+                  <a href = "basics-continued.html" ><<上一节</a>
+                </li>
+                
                 
                 <li>
-                  <a href ="basics.html" >下一节>></a>
+                  <a href ="pattern-matching-and-functional-composition.html" >下一节>></a>
                 </li>
                 
               </ul>
@@ -34,16 +38,307 @@
 
         <div class="container" style="padding-top:60px;">
           <div id="post">
-<p>You&#8217;ll find this post in your <code>_posts</code> directory - edit this post and re-build (or run with the <code>-w</code> switch) to see your changes! To add new posts, simply add a file in the <code>_posts</code> directory that follows the convention: YYYY-MM-DD-name-of-post.ext.</p>
+<p>课程包括</p>
 
-<p>Jekyll also offers powerful support for code snippets:</p>
-<div class='highlight'><pre><code class='ruby'><span class='k'>def</span> <span class='nf'>print_hi</span><span class='p'>(</span><span class='nb'>name</span><span class='p'>)</span>
-  <span class='nb'>puts</span> <span class='s2'>&quot;Hi, </span><span class='si'>#{</span><span class='nb'>name</span><span class='si'>}</span><span class='s2'>&quot;</span>
-<span class='k'>end</span>
-<span class='n'>print_hi</span><span class='p'>(</span><span class='s1'>&#39;Tom&#39;</span><span class='p'>)</span>
-<span class='c1'>#=&gt; prints &#39;Hi, Tom&#39; to STDOUT.</span>
+<ul>
+<li>
+<p>基本数据结构 Basic Data Structures</p>
+
+<ul>
+<li>列表 List</li>
+
+<li>集合 Sets</li>
+
+<li>元组 Tuple</li>
+
+<li>映射 Maps</li>
+</ul>
+</li>
+
+<li>
+<p>函数式选择器 Functional Combinators</p>
+
+<ul>
+<li>映射 Maps</li>
+
+<li>foreach</li>
+
+<li>过滤器 filter</li>
+
+<li>zip</li>
+
+<li>partition</li>
+
+<li>find</li>
+
+<li>drop 和 dropWhile</li>
+
+<li>foldRight 和 foldLeft</li>
+
+<li>flatten</li>
+
+<li>flatMap</li>
+
+<li>生成函数式选择器 Generalized functional combinators</li>
+
+<li>映射吗 Map?</li>
+</ul>
+</li>
+</ul>
+
+<h2 id='_basic_data_structures'>基本数据结构 Basic Data Structures</h2>
+
+<p>Scala 提供一些很棒的集合量。</p>
+
+<p>也可以看看 Effective Scala 里面的观点<a href='http://twitter.github.com/effectivescala/#Collections'>collections</a></p>
+
+<h3 id='_list'>列表 List</h3>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>numbers</span> <span class='o'>=</span> List<span class='o'>(</span>1,2,3,4<span class='o'>)</span>
+numbers: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1,2,3,4<span class='o'>)</span>
 </code></pre></div>
-<p>Check out the <a href='http://jekyllrb.com'>Jekyll docs</a> for more info on how to get the most out of Jekyll. File all bugs/feature requests at <a href='https://github.com/mojombo/jekyll'>Jekyll&#8217;s GitHub repo</a>.</p>
+<h3 id='_sets'>集合 Sets</h3>
+
+<p>集合里面没有重复项</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Set<span class='o'>(</span>1, 1, 2<span class='o'>)</span>
+res0:scala.collection.immutable.Set<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Set<span class='o'>(</span>1, 2<span class='o'>)</span>
+</code></pre></div>
+<h3 id='_tuple'>元组 Tuple</h3>
+
+<p>元组不通过定义类的形式简单的把逻辑集合量组合在一起。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>hostPort</span> <span class='o'>=</span> <span class='o'>(</span><span class='s2'>&quot;localhost&quot;</span>, 80<span class='o'>)</span>
+hostPort: <span class='o'>(</span>String, Int<span class='o'>)</span> <span class='o'>=</span> <span class='o'>(</span>localhost, 80<span class='o'>)</span>
+</code></pre></div>
+<p>和case classes 不一样，它们没有命名访问函数，它们同通过基于1而不是0开始的位置命名来访问。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; hostPort._1
+res0: <span class='nv'>String</span> <span class='o'>=</span> localhost
+
+scala&gt; hostPort._2
+res1: <span class='nv'>Int</span> <span class='o'>=</span> 80
+</code></pre></div>
+<p>元组可以很好的适应模式匹配。</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>hostPort</span> <span class='k'>match</span> <span class='o'>{</span>
+    <span class='k'>case</span> <span class='o'>(</span><span class='s'>&quot;localhost&quot;</span><span class='o'>,</span> <span class='n'>port</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='o'>...</span>
+    <span class='k'>case</span> <span class='o'>(</span><span class='n'>host</span><span class='o'>,</span> <span class='n'>port</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='o'>...</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>元组有一个特殊的调味剂，简单的通过两个值: -&gt; 来定义</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; 1 -&gt; 2
+res0: <span class='o'>(</span>Int, Int<span class='o'>)</span> <span class='o'>=</span> <span class='o'>(</span>1,2<span class='o'>)</span>
+</code></pre></div>
+<p>在Effective Scala 里面有更多关于描述绑定rogramming-Destructuring bindings)的（解包元组）内容。</p>
+
+<h3 id='_maps'>映射 Maps</h3>
+
+<p>它可以存储基本类型数据。</p>
+<div class='highlight'><pre><code class='scala'><span class='nc'>Map</span><span class='o'>(</span><span class='mi'>1</span> <span class='o'>-&gt;</span> <span class='mi'>2</span><span class='o'>)</span>
+<span class='nc'>Map</span><span class='o'>(</span><span class='s'>&quot;foo&quot;</span> <span class='o'>-&gt;</span> <span class='s'>&quot;bar&quot;</span><span class='o'>)</span>
+</code></pre></div>
+<p>这个语法看起来很特殊，不过我们之前讨论元组的时候就曾经用过 -&gt; 来创建元组。</p>
+
+<p>Map() 也可以使用我们之前在第一课介绍的可变参数语法：Map(1 -&gt; &#8220;one&#8221;, 2 -&gt; &#8220;two&#8221;)，可以展开成为Map((1, &#8220;one&#8221;),(2,&#8221;two&#8221;)),其中第一个元素是key，第二个是对应映射的值。</p>
+
+<p>映射可以包含映射甚至是做为值的函数。</p>
+<div class='highlight'><pre><code class='scala'><span class='nc'>Map</span><span class='o'>(</span><span class='mi'>1</span> <span class='o'>-&gt;</span> <span class='nc'>Map</span><span class='o'>(</span><span class='s'>&quot;foo&quot;</span> <span class='o'>-&gt;</span> <span class='s'>&quot;bar&quot;</span><span class='o'>))</span>
+</code></pre></div><div class='highlight'><pre><code class='scala'><span class='nc'>Map</span><span class='o'>(</span><span class='s'>&quot;timesTwo&quot;</span> <span class='o'>-&gt;</span> <span class='o'>{</span> <span class='n'>timesTwo</span><span class='o'>(</span><span class='k'>_</span><span class='o'>)</span> <span class='o'>})</span>
+</code></pre></div>
+<h3 id='_option'>选项 Option</h3>
+
+<p>选项是一个可能包含或可能不包含一些东西的容器。</p>
+
+<p>选项的最基本的接口看起来这样：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Option</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>]</span> <span class='o'>{</span> <span class='k'>def</span> <span class='n'>isDefined</span><span class='k'>:</span> <span class='kt'>Boolean</span> <span class='kt'>def</span> <span class='kt'>get:</span> <span class='kt'>T</span> <span class='kt'>def</span> <span class='kt'>getOrElse</span><span class='o'>(</span><span class='kt'>t:</span> <span class='kt'>T</span><span class='o'>)</span><span class='kt'>:</span> <span class='kt'>T</span> <span class='o'>}</span>
+</code></pre></div>
+<p>选项自己是通用类，它可以包含两个子类：Some<span>T</span> 或者 None。</p>
+
+<p>让我们来看看使用选项的例子：</p>
+
+<p>Map.get 使用Option 来返回它的类型。选项告诉你方法可能并不返回你想要的东西。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>numbers</span> <span class='o'>=</span> Map<span class='o'>(</span>1 -&gt; <span class='s2'>&quot;one&quot;</span>, 2 -&gt; <span class='s2'>&quot;two&quot;</span><span class='o'>)</span>
+numbers: scala.collection.immutable.Map<span class='o'>[</span>Int,String<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>1,one<span class='o'>)</span>,<span class='o'>(</span>2,two<span class='o'>))</span>
+
+scala&gt; numbers.get<span class='o'>(</span>2<span class='o'>)</span>
+res0: Option<span class='o'>[</span>java.lang.String<span class='o'>]</span> <span class='o'>=</span> Some<span class='o'>(</span>two<span class='o'>)</span>
+
+scala&gt; numbers.get<span class='o'>(</span>3<span class='o'>)</span>
+res1: Option<span class='o'>[</span>java.lang.String<span class='o'>]</span> <span class='o'>=</span> None
+</code></pre></div>
+<p>现在我们的数据看起来被Option 捕获了。我们怎样使用它呢。</p>
+
+<p>出于本能的可能有一个isDefined 方法可做为附加条件的。</p>
+
+<p>//我们想要给一个数乘以2,否则就返回0 val result = if (res1.isDefined) { res1.get * 2 } else { 0 }</p>
+
+<p>我们建议你使用getOrElse 或者模式匹配来处理结果。</p>
+
+<p>getOrElse 让你方便的定义默认值。</p>
+
+<p>val = result = res1.getOrElse(0) * 2</p>
+
+<p>选项可以很自然的应用于模式匹配：</p>
+
+<p>val result = res1 match { case Some(n) =&gt; n * 2 case None =&gt; 0 }</p>
+
+<p>这里有Effective Scala 里面关于<a href='http://twitter.github.com/effectivescala/#Functional+programming-Options'>选项</a>的观点。</p>
+
+<h2 id='_functional_combinators'>函数式选择器 Functional Combinators</h2>
+
+<p>List(1, 2, 3) map squared 给列表应用squared 函数，返回一个新的list，可能是List（1, 4, 9）。我们把这个操作叫做类map 选择器。（如果你想要更好的定义，你应该会喜欢Stackoverflow 上面的<a href='http://stackoverflow.com/questions/7533837/explanation-of-combinators-for-the-working-man'>Explanation of combinators</a>）。它们大多数时候应用于基本数据结构。</p>
+
+<h3 id='_map'>映射 map</h3>
+
+<p>通过把没一个函数放到list 里面来求值的函数，返回一个含有相同元素数的list。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; numbers.map<span class='o'>((</span>i: Int<span class='o'>)</span> <span class='o'>=</span>&gt; i * 2<span class='o'>)</span>
+res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 4, 6, 8<span class='o'>)</span>
+</code></pre></div>
+<p>或者部分传入求值函数。</p>
+
+<p>scala&gt; def timesTwo(i: Int):Int = i * 2 timesTwo: (i: Int)Int</p>
+
+<p>scala&gt; numbers.map(timesTwo <em>) res0: List<span>Int</span> = List(2, 4, 6, 8)</em></p>
+
+<h3 id='foreach'>foreach</h3>
+
+<p>foreach 和map 类似，不过它不返回值，foreach 仅适用于它的副作用。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; numbers.foreach<span class='o'>((</span>i: Int<span class='o'>)</span> <span class='o'>=</span>&gt; i * 2<span class='o'>)</span>
+</code></pre></div>
+<p>不返回值。</p>
+
+<p>你可以试着把返回的值存储起来不过它会是Unit 类型(就像，void)</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>doubled</span> <span class='o'>=</span> numbers.foreach<span class='o'>((</span>i: Int<span class='o'>)</span> <span class='o'>=</span>&gt; i * 2<span class='o'>)</span>
+doubled: <span class='nv'>Unit</span> <span class='o'>=</span> <span class='o'>()</span>
+</code></pre></div>
+<h3 id='_filter'>过滤器 filter</h3>
+
+<p>根据你传入函数计算为false 的元素删除。返回Boolean 的函数经常被称为谓词函数（predicate functions）。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; number.filter<span class='o'>((</span>i: Int<span class='o'>)</span> <span class='o'>=</span>&gt; i % <span class='nv'>2</span> <span class='o'>==</span> 0<span class='o'>)</span>
+res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2,4<span class='o'>)</span>
+</code></pre></div><div class='highlight'><pre><code class='bash'>scala&gt; def isEven<span class='o'>(</span>i: Int<span class='o'>)</span>: <span class='nv'>Boolean</span> <span class='o'>=</span> i % <span class='nv'>2</span> <span class='o'>==</span> 0
+isEven: <span class='o'>(</span>i: Int<span class='o'>)</span>Boolean
+
+scala&gt; numbers.filter<span class='o'>(</span>isEven _<span class='o'>)</span>
+res2: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 4<span class='o'>)</span>
+</code></pre></div>
+<h3 id='zip'>zip</h3>
+
+<p>zip 把两个lists 组合成为一个list。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; List<span class='o'>(</span>1, 2, 3<span class='o'>)</span>.zip<span class='o'>(</span>List<span class='o'>(</span><span class='s2'>&quot;a&quot;</span>,<span class='s2'>&quot;b&quot;</span>,<span class='s2'>&quot;c&quot;</span><span class='o'>))</span>
+res0: List<span class='o'>[(</span>Int, String<span class='o'>)]</span> <span class='o'>=</span> List<span class='o'>((</span>1,a<span class='o'>)</span>, <span class='o'>(</span>2,b<span class='o'>)</span>, <span class='o'>(</span>3,c<span class='o'>))</span>
+</code></pre></div>
+<h3 id='partition'>partition</h3>
+
+<p>partition 基于一个谓词函数分割list。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>numbers</span> <span class='o'>=</span> List<span class='o'>(</span>1, 2, 3, 4, 5, 6, 7, 8, 9, 10<span class='o'>)</span>
+scala&gt; numbers.partitin<span class='o'>(</span>_ %2 <span class='o'>==</span> 0<span class='o'>)</span>
+res0: <span class='o'>(</span>List<span class='o'>[</span>Int<span class='o'>]</span>, List<span class='o'>(</span>2, 4, 6, 8, 10<span class='o'>)</span>,List<span class='o'>(</span>1, 3, 5, 7, 9<span class='o'>))</span>
+</code></pre></div>
+<h3 id='find'>find</h3>
+
+<p>find 返回集合里面匹配谓词函数的第一个元素。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; numbers.find<span class='o'>((</span>i: Int<span class='o'>)</span> <span class='o'>=</span>&gt; i &gt; 5<span class='o'>)</span>
+res0: Option<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Some<span class='o'>(</span>6<span class='o'>)</span>
+</code></pre></div>
+<h3 id='drop__dropwhile'>drop 和 dropWhile</h3>
+
+<p>drap 删除第i 个元素</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; numbers.drop<span class='o'>(</span>5<span class='o'>)</span>
+res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>6, 7, 8, 9, 10<span class='o'>)</span>
+</code></pre></div>
+<p>dropWhile 删除匹配谓词函数的第一个元素。比如，如果dropWhile 从list numbers 里面删除奇数元素，1 会被删除（而不是被2 隔离了的3）。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; numbers.dropWhile<span class='o'>(</span>_ %2 !<span class='o'>=</span> 0<span class='o'>)</span>
+res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 3, 4, 5, 6, 7, 8, 9, 10<span class='o'>)</span>
+</code></pre></div>
+<h3 id='foldright__foldleft'>foldRight 和 foldLeft</h3>
+<div class='highlight'><pre><code class='bash'>scala&gt; numbers.foldLeft<span class='o'>(</span>0<span class='o'>)((</span>m: Int,n: Int<span class='o'>)</span> <span class='o'>=</span>&gt; m + n<span class='o'>)</span>
+res0: <span class='nv'>Int</span> <span class='o'>=</span> 55
+</code></pre></div>
+<p>0 是开始值，（记住numbers 是一个List<span>Int</span>）,m 是一个累加器。</p>
+
+<p>这样看起来更形象：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; numbers.foldLeft<span class='o'>(</span>0<span class='o'>)</span> <span class='o'>{</span> <span class='o'>(</span>m: Int, n: Int<span class='o'>)</span> <span class='o'>=</span>&gt; println<span class='o'>(</span><span class='s2'>&quot;m: &quot;</span>+ m + <span class='s2'>&quot; n: &quot;</span> +n<span class='o'>)</span>; m + n <span class='o'>}</span>
+m: 0 n: 1
+m: 1 n: 2
+m: 3 n: 3
+m: 6 n: 4
+m: 10 n: 5
+m: 15 n: 6
+m: 21 n: 7
+m: 28 n: 8
+m: 36 n: 8
+m: 45 n: 9
+res0: <span class='nv'>Int</span> <span class='o'>=</span> 55
+</code></pre></div>
+<p>foldRight 看起来和foldLeft 一样，只不过它是逆向运行的</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; numbers.foldRight<span class='o'>(</span>0<span class='o'>)</span> <span class='o'>{</span> <span class='o'>(</span>m: Int, n: Int<span class='o'>)</span> <span class='o'>=</span>&gt; println<span class='o'>(</span><span class='s2'>&quot; m: &quot;</span> + m + <span class='s2'>&quot; n: &quot;</span> + n<span class='o'>)</span>; m + n<span class='o'>}</span>
+m: 10 n: 0
+m: 9 n:10
+m: 8 n: 19
+m: 7 n: 27
+m: 6 n: 34
+m: 5 n: 40
+m: 4 n: 45
+m: 3 n: 49
+m: 2 n: 52
+m: 1 n: 54
+res0: <span class='nv'>Int</span> <span class='o'>=</span> 55
+</code></pre></div>
+<h3 id='flatten'>flatten</h3>
+
+<p>flatten 折叠一个级别的嵌套结构。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; List<span class='o'>(</span>List<span class='o'>(</span>1, 2<span class='o'>)</span>,List<span class='o'>(</span>3, 4<span class='o'>))</span>.flatten
+res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1, 2, 3, 4<span class='o'>)</span>
+</code></pre></div>
+<h3 id='flatmap'>flatMap</h3>
+
+<p>flatMap 是一个人把mapping 和flatting 联接起来的一个很常用的联接符。flatMap 接受一个嵌套函数列表然后把他们组合起来。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>nestedNumbers</span> <span class='o'>=</span> List<span class='o'>(</span>List<span class='o'>(</span>1, 2<span class='o'>)</span>, List<span class='o'>(</span>3, 4<span class='o'>))</span>
+nestedNumbers: List<span class='o'>[</span>List<span class='o'>[</span>Int<span class='o'>]]</span> <span class='o'>=</span> List<span class='o'>(</span>List<span class='o'>(</span>1, 2<span class='o'>)</span>, List<span class='o'>(</span>3, 4<span class='o'>))</span>
+
+scala&gt; nestedNumbers.flatMap<span class='o'>(</span><span class='nv'>x</span> <span class='o'>=</span>&gt; x.map<span class='o'>(</span>_ * 2<span class='o'>))</span>
+res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 4, 6, 8<span class='o'>)</span>
+</code></pre></div>
+<p>可以考虑把它作为mapping 和flatterning 的简写：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; nestedNumbers.map<span class='o'>((</span>x: List<span class='o'>[</span>Int<span class='o'>])</span> <span class='o'>=</span>&gt; x.map<span class='o'>(</span>_ * 2<span class='o'>))</span>.faltten
+res1: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 4, 6, 8<span class='o'>)</span>
+</code></pre></div>
+<p>这个例子调用map 然后又调用flatten 做为这两个函数很自然的的一个连接。</p>
+
+<p>Effective Scala 里面有关于<a href='http://twitter.github.com/effectivescala/#Functional+programming-`flatMap`'>flatMap</a> 的信息。</p>
+
+<h3 id='_generalized_functional_combinators'>生成函数式选择器 Generalized functional combinators</h3>
+
+<p>现在我们学习了集合量的混合函数。</p>
+
+<p>我们接下来的要做的是写出我们自己的函数式选择器。</p>
+
+<p>有趣的是，下面展示的每一个函数式选择器都被写在fold 的顶部。让我们看看例子。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>ourMap</span><span class='o'>(</span><span class='n'>numbers</span><span class='k'>:</span> <span class='kt'>List</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>],</span> <span class='n'>fn</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=&gt;</span> <span class='nc'>Int</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>List</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>numbers</span><span class='o'>.</span><span class='n'>foldRight</span><span class='o'>(</span><span class='nc'>List</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]())</span> <span class='o'>{</span> <span class='n'>x</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>,</span> <span class='n'>xs</span><span class='k'>:</span> <span class='kt'>List</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>])</span> <span class='k'>=&gt;</span>
+        <span class='n'>fn</span><span class='o'>(</span><span class='n'>x</span><span class='o'>)</span> <span class='o'>::</span> <span class='n'>xs</span>
+    <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>ourMap</span><span class='o'>(</span><span class='n'>numbers</span><span class='o'>,</span> <span class='n'>timesTwo</span><span class='o'>(</span><span class='k'>_</span><span class='o'>))</span>
+<span class='n'>res0</span><span class='k'>:</span> <span class='kt'>List</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>List</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>,</span> <span class='mi'>4</span><span class='o'>,</span> <span class='mi'>6</span><span class='o'>,</span> <span class='mi'>8</span><span class='o'>,</span> <span class='mi'>10</span><span class='o'>,</span> <span class='mi'>12</span><span class='o'>,</span> <span class='mi'>14</span><span class='o'>,</span> <span class='mi'>16</span><span class='o'>,</span> <span class='mi'>18</span><span class='o'>,</span> <span class='mi'>20</span><span class='o'>)</span>
+</code></pre></div>
+<p>为什么是List<span>Int</span> 呢？Scala 还没有聪明到明白你想要一个空的Ints 的 list然后在来累积它。</p>
+
+<p>所有的函数式选择器都是用Maps 来做例子。Map 可以被当成是list 的搭档，所以你写的函数在一组键值对上起作用。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>extensions</span> <span class='o'>=</span> Map<span class='o'>(</span><span class='s2'>&quot;steve&quot;</span> -&gt; 100, <span class='s2'>&quot;job&quot;</span> -&gt; 201<span class='o'>)</span>
+extensions: scala.collection.immutable.Map<span class='o'>[</span>String, Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>steve,100<span class='o'>)</span>,<span class='o'>(</span>bob,101<span class='o'>)</span>,<span class='o'>(</span>joe,201<span class='o'>))</span>
+</code></pre></div>
+<p>现在来以电话扩展低于200 为入口过滤。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; extensions.filter<span class='o'>((</span>namePhone: <span class='o'>(</span>String, Int<span class='o'>))</span> <span class='o'>=</span>&gt; namePhone._2 &lt; 200<span class='o'>)</span>
+res0: scala.collection.immutable.Map<span class='o'>[</span>String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>steve,100<span class='o'>)</span>, <span class='o'>(</span>bob,101<span class='o'>))</span>
+</code></pre></div>
+<p>因为它返回一个元组，你可以通过位置访问函数来取出键和值，很讨厌。</p>
+
+<p>幸运的是，我么也可以用模式匹配来更好的取出键和值。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; extensions.filter<span class='o'>({</span><span class='k'>case</span> <span class='o'>(</span>name, extension<span class='o'>)</span> <span class='o'>=</span>&gt; extension &lt; 200<span class='o'>})</span>
+res0: scala.collection.immutable.Map<span class='o'>[</span>String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>steve,100<span class='o'>)</span>, <span class='o'>(</span>bob,101<span class='o'>))</span>
+</code></pre></div>
+<p>为什么这样也行呢？为什么可以传入部分模式匹配呢？</p>
+
+<p>下节课再说～</p>
 </div>
 
         </div>

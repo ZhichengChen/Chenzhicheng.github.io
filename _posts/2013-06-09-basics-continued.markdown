@@ -3,7 +3,7 @@ layout: post
 title:  "基础二"
 next_link:  collections
 prev_link:  basic
-date:   
+date:  2013-06-09 00:00:00 
 categories: jekyll update
 ---
 
