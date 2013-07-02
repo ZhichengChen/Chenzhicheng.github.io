@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Simple Build Tool</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">Simple Build Tool</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "advanced-types.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="coll2.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>课程涵盖了SBT！详细主题包括：</p>
+
+<ul>
+<li>创建一个sbt 工程</li>
+
+<li>基本命令 basic commands</li>
+
+<li>sbt 控制台</li>
+
+<li>持续执行命令 continuous command execution</li>
+
+<li>自定义你的工程 customizing your project</li>
+
+<li>定制命令 custom commands</li>
+
+<li>sbt 源码快速浏览（如果你有时间的话）</li>
+</ul>
+
+<h2 id='sbt'>关于SBT</h2>
+
+<p>SBT 是一个流行的构建工具。它是用Scala 写的同时提供了一些Scala 特性，它是一个生成为目的的构建工具。</p>
+
+<h2 id='sbt'>为什么选择SBT？</h2>
+
+<ul>
+<li>
+<p>Sane(ish) 依赖管理</p>
+
+<ul>
+<li>lvy 依赖管理</li>
+
+<li>Only-update-on-request 模式</li>
+</ul>
+</li>
+
+<li>
+<p>创建任务全Scala 支持 * 持续执行命令</p>
+</li>
+
+<li>
+<p>在工程环境里运行REPL</p>
+</li>
+</ul>
+
+<h2 id='id29'>启程</h2>
+
+<ul>
+<li><a href='http://code.google.com/p/simple-build-tool/downloads/list'>下载</a>jar 文件</li>
+
+<li>创建调用jar 文件的sbt shell 脚本，比如</li>
+</ul>
+
+<p><div class='highlight'><pre><code class='bash'>java -Xmx521M -jar sbt-launch.jar <span class='s2'>&quot;$@&quot;</span>
+</code></pre></div></p>
+
+<ul>
+<li>确保在当前路径下它（刚刚创建的sbt）是可执行的</li>
+
+<li>运行sbt来创建你的工程</li>
+</ul>
+<div class='highlight'><pre><code class='bash'>cal ~/projects<span class='o'>]</span><span class='nv'>$ </span>sbt
+Project does not exist, create new project? <span class='o'>(</span>y/N/s<span class='o'>)</span> y
+Name: sample
+Organization: com.twitter
+Version <span class='o'>[</span>1.0<span class='o'>]</span>: 1.0-SNAPSHOT
+Scala version <span class='o'>[</span>2.7.7<span class='o'>]</span>: 2.8.1
+sbt version <span class='o'>[</span>0.7.4<span class='o'>]</span>:      
+Getting Scala 2.7.7 ...
+:: retrieving :: org.scala-tools.sbt#boot-scala
+	confs: <span class='o'>[</span>default<span class='o'>]</span>
+	2 artifacts copied, 0 already retrieved <span class='o'>(</span>9911kB/221ms<span class='o'>)</span>
+Getting org.scala-tools.sbt sbt_2.7.7 0.7.4 ...
+:: retrieving :: org.scala-tools.sbt#boot-app
+	confs: <span class='o'>[</span>default<span class='o'>]</span>
+	15 artifacts copied, 0 already retrieved <span class='o'>(</span>4096kB/167ms<span class='o'>)</span>
+<span class='o'>[</span>success<span class='o'>]</span> Successfully initialized directory structure.
+Getting Scala 2.8.1 ...
+:: retrieving :: org.scala-tools.sbt#boot-scala
+	confs: <span class='o'>[</span>default<span class='o'>]</span>
+	2 artifacts copied, 0 already retrieved <span class='o'>(</span>15118kB/386ms<span class='o'>)</span>
+<span class='o'>[</span>info<span class='o'>]</span> Building project sample 1.0-SNAPSHOT against Scala 2.8.1
+<span class='o'>[</span>info<span class='o'>]</span>    using sbt.DefaultProject with sbt 0.7.4 and Scala 2.7.7
+&gt; 
+</code></pre></div>
+<p>注意项目以SNAPSHOT 版本开始是一个不错的惯例。</p>
+
+<h2 id='id30'>项目轮廓</h2>
+
+<ul>
+<li>
+<p>project - 工程定义文件</p>
+
+<ul>
+<li>project/build/.scala - 主要的个工程定义文件</li>
+
+<li>project/build/.properties - 工程，sbt 和scala 版本定义</li>
+</ul>
+</li>
+
+<li>
+<p>src/main - 你的应用代码放在这，在一个说明代码语言的子目录里（比如，src/main/scala,src/main/java）</p>
+</li>
+
+<li>
+<p>src/main/resources - 你想要放到jar 包里面的静态文件（比如，日志文件）</p>
+</li>
+
+<li>
+<p>src/test - 和src/main 类似，不过使用来测试用的</p>
+</li>
+
+<li>
+<p>lib_managed - 你工程依赖的jar 文件。通过sbt update 填充</p>
+</li>
+
+<li>
+<p>target - 生成内容的地方，（比如生成的临时代码，class 文件，jars）</p>
+</li>
+</ul>
+
+<h2 id='id31'>添加代码</h2>
+
+<p>我们将为简单的tweets 创建一个简单的JSON 解析器。把下面代码添加到/src/main/scala/com/twitter/sample/SimpleParser.scala</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.sample</span>
+
+<span class='k'>case</span> <span class='k'>class</span> <span class='nc'>SimpleParsed</span><span class='o'>(</span><span class='n'>id</span><span class='k'>:</span> <span class='kt'>Long</span><span class='o'>,</span> <span class='n'>text</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span>
+
+<span class='k'>class</span> <span class='nc'>SimpleParser</span> <span class='o'>{</span>
+
+  <span class='k'>val</span> <span class='n'>tweetRegex</span> <span class='k'>=</span> <span class='s'>&quot;\&quot;id\&quot;:(.*),\&quot;text\&quot;:\&quot;(.*)\&quot;&quot;</span><span class='o'>.</span><span class='n'>r</span>
+
+  <span class='k'>def</span> <span class='n'>parse</span><span class='o'>(</span><span class='n'>str</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>tweetRegex</span><span class='o'>.</span><span class='n'>findFirstMatchIn</span><span class='o'>(</span><span class='n'>str</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+      <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>m</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='o'>{</span>
+        <span class='k'>val</span> <span class='n'>id</span> <span class='k'>=</span> <span class='n'>str</span><span class='o'>.</span><span class='n'>substring</span><span class='o'>(</span><span class='n'>m</span><span class='o'>.</span><span class='n'>start</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>),</span> <span class='n'>m</span><span class='o'>.</span><span class='n'>end</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)).</span><span class='n'>toInt</span>
+        <span class='k'>val</span> <span class='n'>text</span> <span class='k'>=</span> <span class='n'>str</span><span class='o'>.</span><span class='n'>substring</span><span class='o'>(</span><span class='n'>m</span><span class='o'>.</span><span class='n'>start</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>),</span> <span class='n'>m</span><span class='o'>.</span><span class='n'>end</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>))</span>
+        <span class='nc'>Some</span><span class='o'>(</span><span class='nc'>SimpleParsed</span><span class='o'>(</span><span class='n'>id</span><span class='o'>,</span> <span class='n'>text</span><span class='o'>))</span>
+      <span class='o'>}</span>
+      <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='nc'>None</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这代码很丑陋有很多bug，不过还好可以编译。</p>
+
+<h2 id='id32'>在控制台里面测试</h2>
+
+<p>SBT 可以被当做一个命令行脚本或者一个构建控制台。我们将主要把它当做构建控制台，但是更多的命令可以作为SBT 的一个参数传入命令单独运行，比如</p>
+<div class='highlight'><pre><code class='bash'>sbt <span class='nb'>test</span>
+</code></pre></div>
+<p>注意如果命令接受参数，你需要给整个参数路径加引号，比如</p>
+<div class='highlight'><pre><code class='bash'>sbt <span class='s1'>&#39;test-only com.twitter.sample.SampleSpec&#39;</span>
+</code></pre></div>
+<p>方式很奇怪。</p>
+
+<p>不管怎样，用我们的代码来运行，启动sbt</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span><span class='nb'>local</span> ~/projects/sbt-sample<span class='o'>]</span><span class='nv'>$ </span>sbt
+<span class='o'>[</span>info<span class='o'>]</span> Building project sample 1.0-SNAPSHOT against Scala 2.8.1
+<span class='o'>[</span>info<span class='o'>]</span>    using sbt.DefaultProject with sbt 0.7.4 and Scala 2.7.7
+&gt; 
+</code></pre></div>
+<p>SBT 允许你在所有的工程依赖里加载一个Scala REPL。它在运行控制台之前编译你的项目源文件，给我们提供一个快速的解析方法。</p>
+<div class='highlight'><pre><code class='bash'>&gt; console
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>compile</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span>   Source analysis: 0 new/modified, 0 indirectly invalidated, 0 removed.
+<span class='o'>[</span>info<span class='o'>]</span> Compiling main sources...
+<span class='o'>[</span>info<span class='o'>]</span> Nothing to compile.
+<span class='o'>[</span>info<span class='o'>]</span>   Post-analysis: 3 classes.
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>compile</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> copy-test-resources <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> copy-test-resources <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-compile <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span>   Source analysis: 0 new/modified, 0 indirectly invalidated, 0 removed.
+<span class='o'>[</span>info<span class='o'>]</span> Compiling <span class='nb'>test </span>sources...
+<span class='o'>[</span>info<span class='o'>]</span> Nothing to compile.
+<span class='o'>[</span>info<span class='o'>]</span>   Post-analysis: 0 classes.
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-compile <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> copy-resources <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> copy-resources <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>console</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> Starting scala interpreter...
+<span class='o'>[</span>info<span class='o'>]</span> 
+Welcome to Scala version 2.8.1.final <span class='o'>(</span>Java HotSpot<span class='o'>(</span>TM<span class='o'>)</span> 64-Bit Server VM, Java 1.6.0_22<span class='o'>)</span>.
+Type in expressions to have them evaluated.
+Type :help <span class='k'>for </span>more information.
+
+scala&gt; 
+</code></pre></div>
+<p>我们的代码编译后，我们可以输入Scala 命令。我们会创建一个新的解析器，一个复制的tweet，一个明确的”任务“。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; import com.twitter.sample._            
+import com.twitter.sample._
+
+scala&gt; val <span class='nv'>tweet</span> <span class='o'>=</span> <span class='s2'>&quot;&quot;&quot;{&quot;</span>id<span class='s2'>&quot;:1,&quot;</span>text<span class='s2'>&quot;:&quot;</span>foo<span class='s2'>&quot;}&quot;&quot;&quot;</span>
+tweet: java.lang.String <span class='o'>=</span> <span class='o'>{</span><span class='s2'>&quot;id&quot;</span>:1,<span class='s2'>&quot;text&quot;</span>:<span class='s2'>&quot;foo&quot;</span><span class='o'>}</span>
+
+scala&gt; val <span class='nv'>parser</span> <span class='o'>=</span> new SimpleParser          
+parser: com.twitter.sample.SimpleParser <span class='o'>=</span> com.twitter.sample.SimpleParser@71060c3e
+
+scala&gt; parser.parse<span class='o'>(</span>tweet<span class='o'>)</span>                    
+res0: Option<span class='o'>[</span>com.twitter.sample.SimpleParsed<span class='o'>]</span> <span class='o'>=</span> Some<span class='o'>(</span>SimpleParsed<span class='o'>(</span>1,<span class='s2'>&quot;foo&quot;</span><span class='o'>}))</span>
+
+scala&gt; 
+</code></pre></div>
+<h2 id='id33'>增加依赖</h2>
+
+<p>我们针对这个很小集合输入的简单解析工作了，但是我们想要打断它插入一个测试。第一步是添加specs 测试类库以及给我们的项目添加一个真正的JSON 解析。为了做到这点，我们不得不在默认SBT 轮廓之外创建一个项目。</p>
+
+<p>SBT 把project/build 路径下的Scala 文件当做项目定义。把下面的代码添加到project/build/SampleProject.scala。</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>mport</span> <span class='n'>sbt</span><span class='o'>.</span><span class='k'>_</span>
+
+<span class='k'>class</span> <span class='nc'>SampleProject</span><span class='o'>(</span><span class='n'>info</span><span class='k'>:</span> <span class='kt'>ProjectInfo</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>DefaultProject</span><span class='o'>(</span><span class='n'>info</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>jackson</span> <span class='k'>=</span> <span class='s'>&quot;org.codehaus.jackson&quot;</span> <span class='o'>%</span> <span class='s'>&quot;jackson-core-asl&quot;</span> <span class='o'>%</span> <span class='s'>&quot;1.6.1&quot;</span>
+  <span class='k'>val</span> <span class='n'>specs</span> <span class='k'>=</span> <span class='s'>&quot;org.scala-tools.testing&quot;</span> <span class='o'>%</span> <span class='s'>&quot;specs_2.8.0&quot;</span> <span class='o'>%</span> <span class='s'>&quot;1.6.5&quot;</span> <span class='o'>%</span> <span class='s'>&quot;test&quot;</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>一个项目的定义是一个SBT class。在这里我们扩展了SBT DefaultProject。</p>
+
+<p>你通过val 声明一个依赖。SBT 使用反射来扫描你项目里的所有的依赖vals 然后在构建时创建一个依赖树。语法看起来可能有些陌生，但是它和maven 以来差不多。</p>
+<div class='highlight'><pre><code class='xml'><span class='nt'>&lt;dependency&gt;</span>
+    <span class='nt'>&lt;groupId&gt;</span>org.codehaus.jackson<span class='nt'>&lt;/groupId&gt;</span>
+    <span class='nt'>&lt;artifactId&gt;</span>jackson-core-asl<span class='nt'>&lt;/artifactId&gt;</span>
+    <span class='nt'>&lt;version&gt;</span>1.6.1<span class='nt'>&lt;/version&gt;</span>
+<span class='nt'>&lt;/dependency&gt;</span>
+<span class='nt'>&lt;dependency&gt;</span>
+    <span class='nt'>&lt;groupId&gt;</span>org.scala-tools.testing<span class='nt'>&lt;/groupId&gt;</span>
+    <span class='nt'>&lt;artifactId&gt;</span>specs_2.8.0<span class='nt'>&lt;/artifactId&gt;</span>
+    <span class='nt'>&lt;version&gt;</span>1.6.5<span class='nt'>&lt;/version&gt;</span>
+    <span class='nt'>&lt;scope&gt;</span>test<span class='nt'>&lt;/scope&gt;</span>
+<span class='nt'>&lt;/dependency&gt;</span>
+</code></pre></div>
+<p>现在我可以给我们的工程下载依赖了。从命令行（不是sbt 控制台），运行sbt update</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span><span class='nb'>local</span> ~/projects/sbt-sample<span class='o'>]</span><span class='nv'>$ </span>sbt update
+<span class='o'>[</span>info<span class='o'>]</span> Building project sample 1.0-SNAPSHOT against Scala 2.8.1
+<span class='o'>[</span>info<span class='o'>]</span>    using SampleProject with sbt 0.7.4 and Scala 2.7.7
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>update</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> :: retrieving :: com.twitter#sample_2.8.1 <span class='o'>[</span>sync<span class='o'>]</span>
+<span class='o'>[</span>info<span class='o'>]</span> 	confs: <span class='o'>[</span>compile, runtime, <span class='nb'>test</span>, provided, system, optional, sources, javadoc<span class='o'>]</span>
+<span class='o'>[</span>info<span class='o'>]</span> 	1 artifacts copied, 0 already retrieved <span class='o'>(</span>2785kB/71ms<span class='o'>)</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>update</span> <span class='o'>==</span>
+<span class='o'>[</span>success<span class='o'>]</span> Successful.
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> Total <span class='nb'>time</span>: 1 s, completed Nov 24, 2010 8:47:26 AM
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> Total session <span class='nb'>time</span>: 2 s, completed Nov 24, 2010 8:47:26 AM
+<span class='o'>[</span>success<span class='o'>]</span> Build completed successfully.
+</code></pre></div>
+<p>你会看到sbt 检索specs 库。你现在将要拥有一个lib_managed 库，同时lib_managed/scala_2.8.1/test 将有specs_2.8.0-1.6.5.jar</p>
+
+<h2 id='id34'>添加测试</h2>
+
+<p>现在我们添加了测试类库，把下面的代码放到 src/test/scala/com/twitter/sample/SimpleParserSpec.scala</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.sample</span>
+
+<span class='k'>import</span> <span class='nn'>org.specs._</span>
+
+<span class='k'>object</span> <span class='nc'>SimpleParserSpec</span> <span class='k'>extends</span> <span class='nc'>Specification</span> <span class='o'>{</span>
+  <span class='s'>&quot;SimpleParser&quot;</span> <span class='n'>should</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>parser</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>SimpleParser</span><span class='o'>()</span>
+    <span class='s'>&quot;work with basic tweet&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='k'>val</span> <span class='n'>tweet</span> <span class='k'>=</span> <span class='s'>&quot;&quot;&quot;{&quot;id&quot;:1,&quot;text&quot;:&quot;foo&quot;}&quot;&quot;&quot;</span>
+      <span class='n'>parser</span><span class='o'>.</span><span class='n'>parse</span><span class='o'>(</span><span class='n'>tweet</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+        <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>parsed</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='o'>{</span>
+          <span class='n'>parsed</span><span class='o'>.</span><span class='n'>text</span> <span class='n'>must</span> <span class='n'>be_==</span><span class='o'>(</span><span class='s'>&quot;foo&quot;</span><span class='o'>)</span>
+          <span class='n'>parsed</span><span class='o'>.</span><span class='n'>id</span> <span class='n'>must</span> <span class='n'>be_==</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+        <span class='o'>}</span>
+        <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='n'>fail</span><span class='o'>(</span><span class='s'>&quot;didn&#39;t parse tweet&quot;</span><span class='o'>)</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>在sbt 控制台里，运行测试</p>
+<div class='highlight'><pre><code class='bash'>&gt; <span class='nb'>test</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>compile</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span>   Source analysis: 0 new/modified, 0 indirectly invalidated, 0 removed.
+<span class='o'>[</span>info<span class='o'>]</span> Compiling main sources...
+<span class='o'>[</span>info<span class='o'>]</span> Nothing to compile.
+<span class='o'>[</span>info<span class='o'>]</span>   Post-analysis: 3 classes.
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>compile</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-compile <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span>   Source analysis: 0 new/modified, 0 indirectly invalidated, 0 removed.
+<span class='o'>[</span>info<span class='o'>]</span> Compiling <span class='nb'>test </span>sources...
+<span class='o'>[</span>info<span class='o'>]</span> Nothing to compile.
+<span class='o'>[</span>info<span class='o'>]</span>   Post-analysis: 10 classes.
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-compile <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> copy-test-resources <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> copy-test-resources <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> copy-resources <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> copy-resources <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-start <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-start <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> com.twitter.sample.SimpleParserSpec <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> SimpleParserSpec
+<span class='o'>[</span>info<span class='o'>]</span> SimpleParser should
+<span class='o'>[</span>info<span class='o'>]</span>   + work with basic tweet
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> com.twitter.sample.SimpleParserSpec <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-complete <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-complete <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-finish <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> Passed: : Total 1, Failed 0, Errors 0, Passed 1, Skipped 0
+<span class='o'>[</span>info<span class='o'>]</span>  
+<span class='o'>[</span>info<span class='o'>]</span> All tests PASSED.
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-finish <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-cleanup <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span>-cleanup <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span> <span class='o'>==</span>
+<span class='o'>[</span>success<span class='o'>]</span> Successful.
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> Total <span class='nb'>time</span>: 0 s, completed Nov 24, 2010 8:54:45 AM
+&gt; 
+</code></pre></div>
+<p>我们的测试工作了！现在我们来添加更多。SBT 提供的更好的方式是运行触发行为。Prefacing 一个含有tilde 的动作会开始一个循环，它会在源文件改变时运行。让我们运行run～test 看看会发生什么。</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nb'>test</span> <span class='o'>==</span>
+<span class='o'>[</span>success<span class='o'>]</span> Successful.
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> Total <span class='nb'>time</span>: 0 s, completed Nov 24, 2010 8:55:50 AM
+1. Waiting <span class='k'>for </span><span class='nb'>source </span>changes... <span class='o'>(</span>press enter to interrupt<span class='o'>)</span>
+</code></pre></div>
+<p>现在让我们来添加下面的测试用例</p>
+<div class='highlight'><pre><code class='scala'><span class='s'>&quot;reject a non-JSON tweet&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='k'>val</span> <span class='n'>tweet</span> <span class='k'>=</span> <span class='s'>&quot;&quot;&quot;&quot;id&quot;:1,&quot;text&quot;:&quot;foo&quot;&quot;&quot;&quot;</span>
+      <span class='n'>parser</span><span class='o'>.</span><span class='n'>parse</span><span class='o'>(</span><span class='n'>tweet</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+        <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>parsed</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='n'>fail</span><span class='o'>(</span><span class='s'>&quot;didn&#39;t reject a non-JSON tweet&quot;</span><span class='o'>)</span>
+        <span class='k'>case</span> <span class='n'>e</span> <span class='k'>=&gt;</span> <span class='n'>e</span> <span class='n'>must</span> <span class='n'>be_==</span><span class='o'>(</span><span class='nc'>None</span><span class='o'>)</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+
+    <span class='s'>&quot;ignore nested content&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='k'>val</span> <span class='n'>tweet</span> <span class='k'>=</span> <span class='s'>&quot;&quot;&quot;{&quot;id&quot;:1,&quot;text&quot;:&quot;foo&quot;,&quot;nested&quot;:{&quot;id&quot;:2}}&quot;&quot;&quot;</span>
+      <span class='n'>parser</span><span class='o'>.</span><span class='n'>parse</span><span class='o'>(</span><span class='n'>tweet</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+        <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>parsed</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='o'>{</span>
+          <span class='n'>parsed</span><span class='o'>.</span><span class='n'>text</span> <span class='n'>must</span> <span class='n'>be_==</span><span class='o'>(</span><span class='s'>&quot;foo&quot;</span><span class='o'>)</span>
+          <span class='n'>parsed</span><span class='o'>.</span><span class='n'>id</span> <span class='n'>must</span> <span class='n'>be_==</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+        <span class='o'>}</span>
+        <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='n'>fail</span><span class='o'>(</span><span class='s'>&quot;didn&#39;t parse tweet&quot;</span><span class='o'>)</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+
+    <span class='s'>&quot;fail on partial content&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='k'>val</span> <span class='n'>tweet</span> <span class='k'>=</span> <span class='s'>&quot;&quot;&quot;{&quot;id&quot;:1}&quot;&quot;&quot;</span>
+      <span class='n'>parser</span><span class='o'>.</span><span class='n'>parse</span><span class='o'>(</span><span class='n'>tweet</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+        <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>parsed</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='n'>fail</span><span class='o'>(</span><span class='s'>&quot;didn&#39;t reject a partial tweet&quot;</span><span class='o'>)</span>
+        <span class='k'>case</span> <span class='n'>e</span> <span class='k'>=&gt;</span> <span class='n'>e</span> <span class='n'>must</span> <span class='n'>be_==</span><span class='o'>(</span><span class='nc'>None</span><span class='o'>)</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+</code></pre></div>
+<p>当我们保存文件的时候，SBT 检测到改变，运行测试，然后通知我们我们的解析是lame</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> com.twitter.sample.SimpleParserSpec <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> SimpleParserSpec
+<span class='o'>[</span>info<span class='o'>]</span> SimpleParser should
+<span class='o'>[</span>info<span class='o'>]</span>   + work with basic tweet
+<span class='o'>[</span>info<span class='o'>]</span>   x reject a non-JSON tweet
+<span class='o'>[</span>info<span class='o'>]</span>     didn<span class='s1'>&#39;t reject a non-JSON tweet (Specification.scala:43)</span>
+<span class='s1'>[info]   x ignore nested content</span>
+<span class='s1'>[info]     &#39;</span>foo<span class='s2'>&quot;,&quot;</span>nested<span class='s2'>&quot;:{&quot;</span>id<span class='s1'>&#39; is not equal to &#39;</span>foo<span class='err'>&#39;</span> <span class='o'>(</span>SimpleParserSpec.scala:31<span class='o'>)</span>
+<span class='o'>[</span>info<span class='o'>]</span>   + fail on partial content
+</code></pre></div>
+<p>现在让我们重新开始我们更真实的的JSON 解析</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.sample</span>
+
+<span class='k'>import</span> <span class='nn'>org.codehaus.jackson._</span>
+<span class='k'>import</span> <span class='nn'>org.codehaus.jackson.JsonToken._</span>
+
+<span class='k'>case</span> <span class='k'>class</span> <span class='nc'>SimpleParsed</span><span class='o'>(</span><span class='n'>id</span><span class='k'>:</span> <span class='kt'>Long</span><span class='o'>,</span> <span class='n'>text</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span>
+
+<span class='k'>class</span> <span class='nc'>SimpleParser</span> <span class='o'>{</span>
+
+  <span class='k'>val</span> <span class='n'>parserFactory</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>JsonFactory</span><span class='o'>()</span>
+
+  <span class='k'>def</span> <span class='n'>parse</span><span class='o'>(</span><span class='n'>str</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>parser</span> <span class='k'>=</span> <span class='n'>parserFactory</span><span class='o'>.</span><span class='n'>createJsonParser</span><span class='o'>(</span><span class='n'>str</span><span class='o'>)</span>
+    <span class='k'>if</span> <span class='o'>(</span><span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span> <span class='o'>==</span> <span class='nc'>START_OBJECT</span><span class='o'>)</span> <span class='o'>{</span>
+      <span class='k'>var</span> <span class='n'>token</span> <span class='k'>=</span> <span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span>
+      <span class='k'>var</span> <span class='n'>textOpt</span><span class='k'>:</span><span class='kt'>Option</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>None</span>
+      <span class='k'>var</span> <span class='n'>idOpt</span><span class='k'>:</span><span class='kt'>Option</span><span class='o'>[</span><span class='kt'>Long</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>None</span>
+      <span class='k'>while</span><span class='o'>(</span><span class='n'>token</span> <span class='o'>!=</span> <span class='kc'>null</span><span class='o'>)</span> <span class='o'>{</span>
+        <span class='k'>if</span> <span class='o'>(</span><span class='n'>token</span> <span class='o'>==</span> <span class='nc'>FIELD_NAME</span><span class='o'>)</span> <span class='o'>{</span>
+          <span class='n'>parser</span><span class='o'>.</span><span class='n'>getCurrentName</span><span class='o'>()</span> <span class='k'>match</span> <span class='o'>{</span>
+            <span class='k'>case</span> <span class='s'>&quot;text&quot;</span> <span class='k'>=&gt;</span> <span class='o'>{</span>
+              <span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span>
+              <span class='n'>textOpt</span> <span class='k'>=</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>parser</span><span class='o'>.</span><span class='n'>getText</span><span class='o'>())</span>
+            <span class='o'>}</span>
+            <span class='k'>case</span> <span class='s'>&quot;id&quot;</span> <span class='k'>=&gt;</span> <span class='o'>{</span>
+              <span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span>
+              <span class='n'>idOpt</span> <span class='k'>=</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>parser</span><span class='o'>.</span><span class='n'>getLongValue</span><span class='o'>())</span>
+            <span class='o'>}</span>
+            <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='c1'>// noop</span>
+          <span class='o'>}</span>
+        <span class='o'>}</span>
+        <span class='n'>token</span> <span class='k'>=</span> <span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span>
+      <span class='o'>}</span>
+      <span class='k'>if</span> <span class='o'>(</span><span class='n'>textOpt</span><span class='o'>.</span><span class='n'>isDefined</span> <span class='o'>&amp;&amp;</span> <span class='n'>idOpt</span><span class='o'>.</span><span class='n'>isDefined</span><span class='o'>)</span> <span class='o'>{</span>
+        <span class='nc'>Some</span><span class='o'>(</span><span class='nc'>SimpleParsed</span><span class='o'>(</span><span class='n'>idOpt</span><span class='o'>.</span><span class='n'>get</span><span class='o'>,</span> <span class='n'>textOpt</span><span class='o'>.</span><span class='n'>get</span><span class='o'>))</span>
+      <span class='o'>}</span> <span class='k'>else</span> <span class='o'>{</span>
+        <span class='nc'>None</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span> <span class='k'>else</span> <span class='o'>{</span>
+      <span class='nc'>None</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这是一个简单的Jackson 解析。当我们保存的时候，SBT 重新编译我们的代码然后重新运行测试。让它更好！</p>
+<div class='highlight'><pre><code class='bash'>info<span class='o'>]</span> SimpleParser should
+<span class='o'>[</span>info<span class='o'>]</span>   + work with basic tweet
+<span class='o'>[</span>info<span class='o'>]</span>   + reject a non-JSON tweet
+<span class='o'>[</span>info<span class='o'>]</span>   x ignore nested content
+<span class='o'>[</span>info<span class='o'>]</span>     <span class='s1'>&#39;2&#39;</span> is not equal to <span class='s1'>&#39;1&#39;</span> <span class='o'>(</span>SimpleParserSpec.scala:32<span class='o'>)</span>
+<span class='o'>[</span>info<span class='o'>]</span>   + fail on partial content
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> com.twitter.sample.SimpleParserSpec <span class='o'>==</span>
+</code></pre></div>
+<p>恩，我们需要检查伴生类。让我们添加一些丑陋的guard 来给我们的reading loop。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>parse</span><span class='o'>(</span><span class='n'>str</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>parser</span> <span class='k'>=</span> <span class='n'>parserFactory</span><span class='o'>.</span><span class='n'>createJsonParser</span><span class='o'>(</span><span class='n'>str</span><span class='o'>)</span>
+    <span class='k'>var</span> <span class='n'>nested</span> <span class='k'>=</span> <span class='mi'>0</span>
+    <span class='k'>if</span> <span class='o'>(</span><span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span> <span class='o'>==</span> <span class='nc'>START_OBJECT</span><span class='o'>)</span> <span class='o'>{</span>
+      <span class='k'>var</span> <span class='n'>token</span> <span class='k'>=</span> <span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span>
+      <span class='k'>var</span> <span class='n'>textOpt</span><span class='k'>:</span><span class='kt'>Option</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>None</span>
+      <span class='k'>var</span> <span class='n'>idOpt</span><span class='k'>:</span><span class='kt'>Option</span><span class='o'>[</span><span class='kt'>Long</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>None</span>
+      <span class='k'>while</span><span class='o'>(</span><span class='n'>token</span> <span class='o'>!=</span> <span class='kc'>null</span><span class='o'>)</span> <span class='o'>{</span>
+        <span class='k'>if</span> <span class='o'>(</span><span class='n'>token</span> <span class='o'>==</span> <span class='nc'>FIELD_NAME</span> <span class='o'>&amp;&amp;</span> <span class='n'>nested</span> <span class='o'>==</span> <span class='mi'>0</span><span class='o'>)</span> <span class='o'>{</span>
+          <span class='n'>parser</span><span class='o'>.</span><span class='n'>getCurrentName</span><span class='o'>()</span> <span class='k'>match</span> <span class='o'>{</span>
+            <span class='k'>case</span> <span class='s'>&quot;text&quot;</span> <span class='k'>=&gt;</span> <span class='o'>{</span>
+              <span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span>
+              <span class='n'>textOpt</span> <span class='k'>=</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>parser</span><span class='o'>.</span><span class='n'>getText</span><span class='o'>())</span>
+            <span class='o'>}</span>
+            <span class='k'>case</span> <span class='s'>&quot;id&quot;</span> <span class='k'>=&gt;</span> <span class='o'>{</span>
+              <span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span>
+              <span class='n'>idOpt</span> <span class='k'>=</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>parser</span><span class='o'>.</span><span class='n'>getLongValue</span><span class='o'>())</span>
+            <span class='o'>}</span>
+            <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='c1'>// noop</span>
+          <span class='o'>}</span>
+        <span class='o'>}</span> <span class='k'>else</span> <span class='k'>if</span> <span class='o'>(</span><span class='n'>token</span> <span class='o'>==</span> <span class='nc'>START_OBJECT</span><span class='o'>)</span> <span class='o'>{</span>
+          <span class='n'>nested</span> <span class='o'>+=</span> <span class='mi'>1</span>
+        <span class='o'>}</span> <span class='k'>else</span> <span class='k'>if</span> <span class='o'>(</span><span class='n'>token</span> <span class='o'>==</span> <span class='nc'>END_OBJECT</span><span class='o'>)</span> <span class='o'>{</span>
+          <span class='n'>nested</span> <span class='o'>-=</span> <span class='mi'>1</span>
+        <span class='o'>}</span>
+        <span class='n'>token</span> <span class='k'>=</span> <span class='n'>parser</span><span class='o'>.</span><span class='n'>nextToken</span><span class='o'>()</span>
+      <span class='o'>}</span>
+      <span class='k'>if</span> <span class='o'>(</span><span class='n'>textOpt</span><span class='o'>.</span><span class='n'>isDefined</span> <span class='o'>&amp;&amp;</span> <span class='n'>idOpt</span><span class='o'>.</span><span class='n'>isDefined</span><span class='o'>)</span> <span class='o'>{</span>
+        <span class='nc'>Some</span><span class='o'>(</span><span class='nc'>SimpleParsed</span><span class='o'>(</span><span class='n'>idOpt</span><span class='o'>.</span><span class='n'>get</span><span class='o'>,</span> <span class='n'>textOpt</span><span class='o'>.</span><span class='n'>get</span><span class='o'>))</span>
+      <span class='o'>}</span> <span class='k'>else</span> <span class='o'>{</span>
+        <span class='nc'>None</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span> <span class='k'>else</span> <span class='o'>{</span>
+      <span class='nc'>None</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+</code></pre></div>
+<p>它生效了！</p>
+
+<h2 id='id35'>打包和部署</h2>
+
+<p>在这里我们可以运行package 命令来生成jar 文件。不管怎样，我们可能想要和我们的团队共享我们的jar 文件。为了做到这一点我们将要构建与标准工程，这将会给我们一个大的头部开始。</p>
+
+<p>第一步就是在SBT plugin 里面包含StandardProject 。插件是给你的构建引入依赖的一种方式，和你的project 一样。这些依赖定义在project/plugins/Plugins.scala 里。把下面的代码添加到你的Plugins.scala 文件里。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>sbt._</span>
+
+<span class='k'>class</span> <span class='nc'>Plugins</span><span class='o'>(</span><span class='n'>info</span><span class='k'>:</span> <span class='kt'>ProjectInfo</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>PluginDefinition</span><span class='o'>(</span><span class='n'>info</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>twitterMaven</span> <span class='k'>=</span> <span class='s'>&quot;twitter.com&quot;</span> <span class='n'>at</span> <span class='s'>&quot;http://maven.twttr.com/&quot;</span>
+  <span class='k'>val</span> <span class='n'>defaultProject</span> <span class='k'>=</span> <span class='s'>&quot;com.twitter&quot;</span> <span class='o'>%</span> <span class='s'>&quot;standard-project&quot;</span> <span class='o'>%</span> <span class='s'>&quot;0.7.14&quot;</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>注意我们指定了一个maven 开发库做为依赖。这是因为标准的工程类库是被我们托管的，它不是默认检查的sbt 开发库。</p>
+
+<p>我们也个呢更新我们的project 定义来扩展StandardProject，包括SVN 发布trait，以及定义开发库做为希望发布的那样。把SampleProject.scala 按如下修改</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>mport</span> <span class='n'>sbt</span><span class='o'>.</span><span class='k'>_</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.sbt._</span>
+
+<span class='k'>class</span> <span class='nc'>SampleProject</span><span class='o'>(</span><span class='n'>info</span><span class='k'>:</span> <span class='kt'>ProjectInfo</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>StandardProject</span><span class='o'>(</span><span class='n'>info</span><span class='o'>)</span> <span class='k'>with</span> <span class='nc'>SubversionPublisher</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>jackson</span> <span class='k'>=</span> <span class='s'>&quot;org.codehaus.jackson&quot;</span> <span class='o'>%</span> <span class='s'>&quot;jackson-core-asl&quot;</span> <span class='o'>%</span> <span class='s'>&quot;1.6.1&quot;</span>
+  <span class='k'>val</span> <span class='n'>specs</span> <span class='k'>=</span> <span class='s'>&quot;org.scala-tools.testing&quot;</span> <span class='o'>%</span> <span class='s'>&quot;specs_2.8.0&quot;</span> <span class='o'>%</span> <span class='s'>&quot;1.6.5&quot;</span> <span class='o'>%</span> <span class='s'>&quot;test&quot;</span>
+
+  <span class='k'>override</span> <span class='k'>def</span> <span class='n'>subversionRepository</span> <span class='k'>=</span> <span class='nc'>Some</span><span class='o'>(</span><span class='s'>&quot;http://svn.local.twitter.com/maven/&quot;</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>现在如果我们运行publish 命令我们会看到如下</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>deliver</span> <span class='o'>==</span>
+IvySvn Build-Version: null
+IvySvn Build-DateTime: null
+<span class='o'>[</span>info<span class='o'>]</span> :: delivering :: com.twitter#sample;1.0-SNAPSHOT :: 1.0-SNAPSHOT :: release :: Wed Nov 24 10:26:45 PST 2010
+<span class='o'>[</span>info<span class='o'>]</span> 	delivering ivy file to /Users/mmcbride/projects/sbt-sample/target/ivy-1.0-SNAPSHOT.xml
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>deliver</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> make-pom <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> Wrote /Users/mmcbride/projects/sbt-sample/target/sample-1.0-SNAPSHOT.pom
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> make-pom <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>publish</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> :: publishing :: com.twitter#sample
+<span class='o'>[</span>info<span class='o'>]</span> Scheduling publish to http://svn.local.twitter.com/maven/com/twitter/sample/1.0-SNAPSHOT/sample-1.0-SNAPSHOT.jar
+<span class='o'>[</span>info<span class='o'>]</span> 	published sample to com/twitter/sample/1.0-SNAPSHOT/sample-1.0-SNAPSHOT.jar
+<span class='o'>[</span>info<span class='o'>]</span> Scheduling publish to http://svn.local.twitter.com/maven/com/twitter/sample/1.0-SNAPSHOT/sample-1.0-SNAPSHOT.pom
+<span class='o'>[</span>info<span class='o'>]</span> 	published sample to com/twitter/sample/1.0-SNAPSHOT/sample-1.0-SNAPSHOT.pom
+<span class='o'>[</span>info<span class='o'>]</span> Scheduling publish to http://svn.local.twitter.com/maven/com/twitter/sample/1.0-SNAPSHOT/ivy-1.0-SNAPSHOT.xml
+<span class='o'>[</span>info<span class='o'>]</span> 	published ivy to com/twitter/sample/1.0-SNAPSHOT/ivy-1.0-SNAPSHOT.xml
+<span class='o'>[</span>info<span class='o'>]</span> Binary diff deleting com/twitter/sample/1.0-SNAPSHOT
+<span class='o'>[</span>info<span class='o'>]</span> Commit finished r977 by <span class='s1'>&#39;mmcbride&#39;</span> at Wed Nov 24 10:26:47 PST 2010
+<span class='o'>[</span>info<span class='o'>]</span> Copying from com/twitter/sample/.upload to com/twitter/sample/1.0-SNAPSHOT
+<span class='o'>[</span>info<span class='o'>]</span> Binary diff finished : r978 by <span class='s1'>&#39;mmcbride&#39;</span> at Wed Nov 24 10:26:47 PST 2010
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>publish</span> <span class='o'>==</span>
+<span class='o'>[</span>success<span class='o'>]</span> Successful.
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> Total <span class='nb'>time</span>: 4 s, completed Nov 24, 2010 10:26:47 AM
+</code></pre></div>
+<p>过一会儿以后，我们可以到binaries.local.twitter.com:http://binaries.local.twitter/maven/com/twitter/sample/1.0-SNAPSHOT/ 来找到publish.jar。</p>
+
+<h2 id='id36'>添加任务</h2>
+
+<p>任务就是Scala 函数，添加任务的最简单方法就是在工程定义里面用task 方法来include 一个val，比如。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>lazy</span> <span class='k'>val</span> <span class='n'>print</span> <span class='k'>=</span> <span class='n'>task</span> <span class='o'>{</span><span class='n'>log</span><span class='o'>.</span><span class='n'>info</span><span class='o'>(</span><span class='s'>&quot;a test action&quot;</span><span class='o'>);</span> <span class='nc'>None</span><span class='o'>}</span>
+</code></pre></div>
+<p>如果你想要添加依赖和描述你可以向这样</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>lazy</span> <span class='k'>val</span> <span class='n'>print</span> <span class='k'>=</span> <span class='n'>task</span> <span class='o'>{</span><span class='n'>log</span><span class='o'>.</span><span class='n'>info</span><span class='o'>(</span><span class='s'>&quot;a test action&quot;</span><span class='o'>);</span> <span class='nc'>None</span><span class='o'>}.</span><span class='n'>dependsOn</span><span class='o'>(</span><span class='n'>compile</span><span class='o'>)</span> <span class='n'>describedAs</span><span class='o'>(</span><span class='s'>&quot;prints a line after compile&quot;</span><span class='o'>)</span>
+</code></pre></div>
+<p>如果你重新加载我们的工程并且运行print 命令，你会看到如下</p>
+<div class='highlight'><pre><code class='bash'>&gt; print
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>print</span> <span class='o'>==</span>
+<span class='o'>[</span>info<span class='o'>]</span> a <span class='nb'>test </span>action
+<span class='o'>[</span>info<span class='o'>]</span> <span class='o'>==</span> <span class='nv'>print</span> <span class='o'>==</span>
+<span class='o'>[</span>success<span class='o'>]</span> Successful.
+<span class='o'>[</span>info<span class='o'>]</span> 
+<span class='o'>[</span>info<span class='o'>]</span> Total <span class='nb'>time</span>: 0 s, completed Nov 24, 2010 11:05:12 AM
+&gt; 
+</code></pre></div>
+<p>因此，它工作了，如果你在单个项目里定义一个任务，这个任务还好。无论如何，如果你把它定义在一个插件里会相当的代办。我会这么办</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>lazy</span> <span class='k'>val</span> <span class='n'>print</span> <span class='k'>=</span> <span class='n'>printAction</span>
+<span class='k'>def</span> <span class='n'>printAction</span> <span class='k'>=</span> <span class='n'>printTask</span><span class='o'>.</span><span class='n'>dependsOn</span><span class='o'>(</span><span class='n'>compile</span><span class='o'>)</span> <span class='n'>describedAs</span><span class='o'>(</span><span class='s'>&quot;prints a line after compile&quot;</span><span class='o'>)</span>
+<span class='k'>def</span> <span class='n'>printTask</span> <span class='k'>=</span> <span class='n'>task</span> <span class='o'>{</span><span class='n'>log</span><span class='o'>.</span><span class='n'>info</span><span class='o'>(</span><span class='s'>&quot;a test action&quot;</span><span class='o'>);</span> <span class='nc'>None</span><span class='o'>}</span>
+</code></pre></div>
+<p>它允许消费者重载任务本身，任务的依赖和/或描述，或者是动作。更多的SBT 构建行为遵循这个模式。做为例子，我们修改了builtin 包task，来打印当前处理的时间戳。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>lazy</span> <span class='k'>val</span> <span class='n'>printTimestamp</span> <span class='k'>=</span> <span class='n'>task</span> <span class='o'>{</span> <span class='n'>log</span><span class='o'>.</span><span class='n'>info</span><span class='o'>(</span><span class='s'>&quot;current time is &quot;</span> <span class='o'>+</span> <span class='nc'>System</span><span class='o'>.</span><span class='n'>currentTimeMillis</span><span class='o'>);</span> <span class='nc'>None</span><span class='o'>}</span>
+<span class='k'>override</span> <span class='k'>def</span> <span class='n'>packageAction</span> <span class='k'>=</span> <span class='k'>super</span><span class='o'>.</span><span class='n'>packageAction</span><span class='o'>.</span><span class='n'>dependsOn</span><span class='o'>(</span><span class='n'>printTimestamp</span><span class='o'>)</span>
+</code></pre></div>
+<p>StandardProject 有一些调整默认SBT 和订制任务的例子。</p>
+
+<h2 id='id37'>快速参考</h2>
+
+<h3 id='id38'>一般命令</h3>
+
+<ul>
+<li>actions - 显示这个项目里的可见命令</li>
+
+<li>update - 下载依赖</li>
+
+<li>compile - 编译源</li>
+
+<li>test - 运行测试</li>
+
+<li>package - 创建可发布的jar 文件</li>
+
+<li>publish-local - 在你的local ivy 缓存里安装build jar</li>
+
+<li>publish - 把你的jar 文件放入到远程repo 里（如果配置的话）</li>
+</ul>
+
+<h4 id='moar_'>Moar 命令</h4>
+
+<ul>
+<li>test-failed - 运行任何失败的specs</li>
+
+<li>test-quick - 运行任何失败的并且或者有依赖更新的specs</li>
+
+<li>clean-cache - 清空各种sbt 缓存文件。和sbt clean 类似</li>
+
+<li>clean-lib - 清空lib_managed 里的一切</li>
+</ul>
+
+<h2 id='id39'>项目轮廓</h2>
+
+<p>TBD</p>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>

@@ -56,7 +56,7 @@
 <li>定量 Quantification</li>
 </ul>
 
-<h2 id='id75'>什么是静态类型，为什么说他们很有用？</h2>
+<h2 id='id20'>什么是静态类型，为什么说他们很有用？</h2>
 
 <p>Pierce 说过：“静态类型就是一个语句方法，它根据它们计算出来的的种类分类程序语句，来自动检查指定的缺少的错误行为。”</p>
 
@@ -89,7 +89,7 @@
 <li>视图 view 我们下节课将会学习，粗略的讲，一个类型到另一个类型的值的可塑性</li>
 </ul>
 
-<h2 id='id76'>参数的多态</h2>
+<h2 id='id21'>参数的多态</h2>
 
 <p>多态用来写没有丰富的静态类型组合的一般性代码（为不同的类型值）。</p>
 
@@ -123,7 +123,7 @@ res1: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=<
 </code></pre></div>
 <p>&#8230;.你会得到一个类型不匹配</p>
 
-<h2 id='id77'>类型推断</h2>
+<h2 id='id22'>类型推断</h2>
 
 <p>一个传统的反对静态类型的声音是它话费了太多的语句。Scala 通过类型推断减轻了这点。</p>
 
@@ -155,7 +155,7 @@ x: Array<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</s
 </code></pre></div>
 <p>类型现在保存了，Scala 编译器为我们推断出来了参数类型。注意我们怎样做不一定明确返回指定类型。</p>
 
-<h2 id='id78'>变化</h2>
+<h2 id='id23'>变化</h2>
 
 <p>Scala 的类型系统不得不和多态来解释class 层级 。Class 层级允许子类型关系的表达式。当混合了OO 和多态时的一个中心的讨论问题是： 如果T&#8217; 是T 的一个子类，Cotainer<span>T&#8217;</span> 是Container<span>T</span> 的子类吗？变化调用允许你的表达式class 层级和部署类型的下列关系。</p>
 <table class='table table-bordered'>
@@ -230,7 +230,7 @@ getTweet: <span class='nv'>Bird</span> <span class='o'>=</span>&gt; <span class=
 <div class='highlight'><pre><code class='bash'>scala&gt; val hatch: <span class='o'>(()</span> <span class='o'>=</span>&gt; Bird<span class='o'>)</span> <span class='o'>=(()</span> <span class='o'>=</span>&gt; new Chicken <span class='o'>)</span>
 hatch: <span class='o'>()</span> <span class='o'>=</span>&gt; <span class='nv'>Bird</span> <span class='o'>=</span> &lt;function0&gt;
 </code></pre></div>
-<h2 id='id79'>界限</h2>
+<h2 id='id24'>界限</h2>
 
 <p>Scala 允许你使用bounds 来限制多态变量。bounds 表达子类型的关系。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; def cacophony<span class='o'>[</span>T<span class='o'>](</span>things: Seq<span class='o'>[</span>T<span class='o'>])</span> <span class='o'>=</span> things map <span class='o'>(</span>_.sound<span class='o'>)</span>
@@ -257,7 +257,7 @@ res59: List<span class='o'>[</span>Animal<span class='o'>]</span> <span class='o
 </code></pre></div>
 <p>注意返回的类型是Animal。</p>
 
-<h2 id='id80'>定量</h2>
+<h2 id='id25'>定量</h2>
 
 <p>有些时候你不关心类型变量的名字，比如</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; def count<span class='o'>[</span>A<span class='o'>](</span>l: List<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>=</span> l.size
