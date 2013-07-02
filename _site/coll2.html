@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>更多的集合量</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">更多的集合量</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "sbt.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="specs.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>Scala 提供了一套漂亮的集合量实现。它也提供了一些抽象的集合量类型。这就允许你写可以和Foo 的集合量一起工作的代码而不用担心集合量是不是List，Set 或其它的什么。</p>
+
+<p><a href='http://www.decodified.com/scala/collections-api.xml'>这个页</a>提供了默认实现的大量的方法以及Scaladoc 的链接。</p>
+
+<ul>
+<li>Basics 你会一直使用的集合量类型</li>
+
+<li>Hierarchy 集合量抽象</li>
+
+<li>Methods</li>
+
+<li>Mutable</li>
+
+<li>Java collections 如何启作用</li>
+</ul>
+
+<h2 id='the_basics'>The basics</h2>
+
+<h3 id='list'>List</h3>
+
+<p>标准的链接的列表。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; List<span class='o'>(</span>1, 2, 3<span class='o'>)</span>
+res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1, 2, 3<span class='o'>)</span>
+</code></pre></div>
+<p>你可以向你在函数式编程里面期待的那样定义它。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; 1 :: 2 :: 3 :: Nil
+res1: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1, 2, 3<span class='o'>)</span>
+</code></pre></div>
+<p>也可以看看<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/List.html'>API 文档</a></p>
+
+<p>Set</p>
+
+<p>Sets 不能有重复项</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Set<span class='o'>(</span>1, 1, 2<span class='o'>)</span>
+res2: scala.collection.immutable.Set<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Set<span class='o'>(</span>1, 2<span class='o'>)</span>
+</code></pre></div>
+<p>Seq</p>
+
+<p>Sequences 有一个定义的顺序。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Seq<span class='o'>(</span>1, 1, 2<span class='o'>)</span>
+res3: Seq<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1, 1, 2<span class='o'>)</span>
+</code></pre></div>
+<p>(注意它返回一个List，Seq 是一个借口，List 是一个Seq 的可爱的实现。这里有一个工厂类Seq,就是你看到的，创建了Lists。)</p>
+
+<p>见<a href='http://www.scala-lang.org/api/current/scala/collection/Seq.html'>API 文档</a></p>
+
+<p>Map</p>
+
+<p>Maps 是键值对容器。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Map<span class='o'>(</span><span class='s1'>&#39;a&#39;</span> -&gt; 1, <span class='s1'>&#39;b&#39;</span> -&gt; 2<span class='o'>)</span>
+res4: scala.collection.immutable.Map<span class='o'>[</span>Char,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>a,1<span class='o'>)</span>, <span class='o'>(</span>b,2<span class='o'>))</span>
+</code></pre></div>
+<p>见<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/Map.html'>API 文档</a></p>
+
+<h2 id='hiberarchy'>Hiberarchy</h2>
+
+<p>所有的接口，包括所有的mutable 和immutable 包内有实现的这些以及特定的实现。</p>
+
+<h3 id='traversable'>Traversable</h3>
+
+<p>所有的集合都可以被反转。这个接口定义了标准的函数组合器。这个组合器在foreach 方面被写入，其中集合量必须被实现。</p>
+
+<p>见<a href='http://twitter.github.io/scala_school/coll2.html#http://www.scala-lang.org/api/current/scala/collection/Traversable.html'>API 文档</a></p>
+
+<h3 id='iterable'>Iterable</h3>
+
+<p>有一个iterator() 方法来给迭代所有的元素。</p>
+
+<p>见<a href='http://www.scala-lang.org/api/current/scala/collection/Iterable.html'>API 文档</a></p>
+
+<h3 id='seq'>Seq</h3>
+
+<p>通过ordering 排序元素。</p>
+
+<p>见<a href='http://www.scala-lang.org/api/current/scala/collection/Seq.html'>API 文档</a></p>
+
+<h3 id='set'>Set</h3>
+
+<p>一个没有重复项的的集合。</p>
+
+<p>见<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/Set.html'>API 文档</a></p>
+
+<h3 id='map'>Map</h3>
+
+<p>键值对。</p>
+
+<p>见<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/Map.html'>API 文档</a></p>
+
+<h2 id='id40'>方法</h2>
+
+<h3 id='traversable'>Traversable</h3>
+
+<p>下面所有的这些方法都是可见的。一样作为可自由重载它们的子类，参数和返回类型看起来并不是一直一样。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>head</span> <span class='k'>:</span> <span class='kt'>A</span>
+<span class='k'>def</span> <span class='n'>tail</span> <span class='k'>:</span> <span class='kt'>Traversable</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+</code></pre></div>
+<p>这是函数组合的定义。</p>
+
+<p>def map BA) =&gt; B) : CC<span>B</span></p>
+
+<p>返回一个每个元素都被f 转化了的集合量。</p>
+
+<p>def foreachU&gt; U): Unit</p>
+
+<p>对集合量里的每一个元素执行f。</p>
+
+<p>def find(p: (A) =&gt; Boolean) : Option<span>A</span></p>
+
+<p>返回匹配谓词函数的地一个元素</p>
+
+<p>def filter (p: (A) =&gt; Boolean) : Traversable<span>A</span></p>
+
+<p>返回匹配谓词函数的所有的元素。</p>
+
+<p>Partitioning:</p>
+
+<p>def partition (p: (A) =&gt; Boolean) : (Traversable<span>A</span>, Traversable<span>A</span>)</p>
+
+<p>根据为此函数把集合两分成两半</p>
+
+<p>def groupBy KA) =&gt; K) : Map<span>K, Traversable<span>A</span></span></p>
+
+<p>Conversion:</p>
+
+<p>很有趣，你可以把一个集合量类型转换成其它类型。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>toArray</span> <span class='k'>:</span> <span class='kt'>Array</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toArray</span> <span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>]</span> <span class='o'>(</span><span class='k'>implicit</span> <span class='n'>arg0</span><span class='k'>:</span> <span class='kt'>ClassManifest</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>])</span> <span class='k'>:</span> <span class='kt'>Array</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toBuffer</span> <span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>]</span> <span class='k'>:</span> <span class='kt'>Buffer</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toIndexedSeq</span> <span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>]</span> <span class='k'>:</span> <span class='kt'>IndexedSeq</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toIterable</span> <span class='k'>:</span> <span class='kt'>Iterable</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toIterator</span> <span class='k'>:</span> <span class='kt'>Iterator</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toList</span> <span class='k'>:</span> <span class='kt'>List</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toMap</span> <span class='o'>[</span><span class='kt'>T</span>, <span class='kt'>U</span><span class='o'>]</span> <span class='o'>(</span><span class='k'>implicit</span> <span class='n'>ev</span><span class='k'>:</span> <span class='k'>&lt;:</span><span class='kt'>&lt;</span><span class='o'>[</span><span class='kt'>A</span>, <span class='o'>(</span><span class='kt'>T</span>, <span class='kt'>U</span><span class='o'>)])</span> <span class='k'>:</span> <span class='kt'>Map</span><span class='o'>[</span><span class='kt'>T</span>, <span class='kt'>U</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toSeq</span> <span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toSet</span> <span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>]</span> <span class='k'>:</span> <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toStream</span> <span class='k'>:</span> <span class='kt'>Stream</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+<span class='k'>def</span> <span class='n'>toString</span> <span class='o'>()</span> <span class='k'>:</span> <span class='kt'>String</span>
+<span class='k'>def</span> <span class='n'>toTraversable</span> <span class='k'>:</span> <span class='kt'>Traversable</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+ 
+</code></pre></div>
+<p>让我们把Map 转换成数组。你会得到一个键值对的数组。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Map<span class='o'>(</span>1 -&gt; 2<span class='o'>)</span>.toArray
+res41: Array<span class='o'>[(</span>Int, Int<span class='o'>)]</span> <span class='o'>=</span> Array<span class='o'>((</span>1,2<span class='o'>))</span>
+</code></pre></div>
+<h3 id='iterable'>Iterable</h3>
+
+<p>增加一个访问迭代器</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>iterator</span><span class='k'>:</span> <span class='kt'>Iterator</span> <span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+</code></pre></div>
+<p>迭代器能给你带来什么呢？</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>hasNext</span><span class='o'>()</span><span class='k'>:</span> <span class='kt'>Boolean</span>
+<span class='k'>def</span> <span class='n'>next</span><span class='o'>()</span><span class='k'>:</span> <span class='kt'>A</span>
+</code></pre></div>
+<p>这是一个很像Java 的风格。你不会经常看到Scala 里面的迭代器使用，你很可能看见过函数组合器或者更深层次的应用。</p>
+
+<p>Set</p>
+<div class='highlight'><pre><code class='scala'>  <span class='k'>def</span> <span class='n'>contains</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>A</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Boolean</span>
+  <span class='k'>def</span> <span class='o'>+(</span><span class='n'>elem</span><span class='k'>:</span> <span class='kt'>A</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+  <span class='k'>def</span> <span class='o'>-(</span><span class='n'>elem</span><span class='k'>:</span> <span class='kt'>A</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+</code></pre></div>
+<p>Map</p>
+
+<p>有序的键值对可以通过键来查找。</p>
+
+<p>向apply() 传递一个List Pairs ，就像这样</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Map<span class='o'>(</span><span class='s2'>&quot;a&quot;</span> -&gt; 1, <span class='s2'>&quot;b&quot;</span> -&gt; 2<span class='o'>)</span>
+res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>a,1<span class='o'>)</span>, <span class='o'>(</span>b,2<span class='o'>))</span>
+</code></pre></div>
+<p>或者这样</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Map<span class='o'>((</span><span class='s2'>&quot;a&quot;</span>, 2<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;b&quot;</span>, 2<span class='o'>))</span>
+res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>a,2<span class='o'>)</span>, <span class='o'>(</span>b,2<span class='o'>))</span>
+</code></pre></div>
+<h6 id='id41'>题外话</h6>
+
+<p>-&gt; 是什么意思？这不是明确的语法，这是一个返回元组的方法。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; <span class='s2'>&quot;a&quot;</span> -&gt; 2
+
+res0: <span class='o'>(</span>java.lang.String, Int<span class='o'>)</span> <span class='o'>=</span> <span class='o'>(</span>a,2<span class='o'>)</span>
+</code></pre></div>
+<p>记住，这只是一个语法糖，全写如下</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; <span class='s2'>&quot;a&quot;</span>.-&gt;<span class='o'>(</span>2<span class='o'>)</span>
+
+res1: <span class='o'>(</span>java.lang.String, Int<span class='o'>)</span> <span class='o'>=</span> <span class='o'>(</span>a,2<span class='o'>)</span>
+</code></pre></div>
+<p>你也可以通过 ++ 来构建</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Map.empty ++ List<span class='o'>((</span><span class='s2'>&quot;a&quot;</span>, 1<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;b&quot;</span>, 2<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;c&quot;</span>, 3<span class='o'>))</span>
+res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>a,1<span class='o'>)</span>, <span class='o'>(</span>b,2<span class='o'>)</span>, <span class='o'>(</span>c,3<span class='o'>))</span>
+</code></pre></div>
+<h3 id='id42'>通常使用的子类</h3>
+
+<p><strong>HashSet 和 HashMap</strong> 快速寻找，这些集合的最普遍的使用方式。<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html'>HashSet API</a>,<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html'>HashMap API</a></p>
+
+<p><strong>TreeMap</strong> 一个SortedMap 的子类，可以顺序访问。<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html'>TreeMap API</a></p>
+
+<p><strong>Vector</strong> 快速随机选择和快速更新。<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/TreeMap.html'>Vector API</a></p>
+<div class='highlight'><pre><code class='bash'>scala&gt; IndexedSeq<span class='o'>(</span>1, 2, 3<span class='o'>)</span>
+res0: IndexedSeq<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Vector<span class='o'>(</span>1, 2, 3<span class='o'>)</span>
+</code></pre></div>
+<p>Range 间隔分开的有序Int 序列。你在之前的counting for-loop 里面经常看到它的使用方法。<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/Range.html'>Range API</a></p>
+<div class='highlight'><pre><code class='bash'>scala&gt; <span class='k'>for</span> <span class='o'>(</span>i &lt;- 1 to 3<span class='o'>)</span> <span class='o'>{</span> println<span class='o'>(</span>i<span class='o'>)</span> <span class='o'>}</span>
+1
+2
+3
+</code></pre></div>
+<p>Range 有标准可见的的函数组合。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; <span class='o'>(</span>1 to 3<span class='o'>)</span>.map <span class='o'>{</span> <span class='nv'>i</span> <span class='o'>=</span>&gt; i <span class='o'>}</span>
+res0: scala.collection.immutable.IndexedSeq<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Vector<span class='o'>(</span>1, 2, 3<span class='o'>)</span>
+</code></pre></div>
+<h2 id='defaults'>Defaults</h2>
+
+<p>使用接口apply 方法会给你一个默认实现的实例，比如，Iterable(1,2) 返回一个默认实现的List。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Iterable<span class='o'>(</span>1, 2<span class='o'>)</span>
+
+res0: Iterable<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1, 2<span class='o'>)</span>
+</code></pre></div>
+<p>Seq 也一样，就像我们之前看到的</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; Seq<span class='o'>(</span>1, 2<span class='o'>)</span>
+res3: Seq<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1, 2<span class='o'>)</span>
+
+scala&gt; Iterable<span class='o'>(</span>1, 2<span class='o'>)</span>
+res1: Iterable<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1, 2<span class='o'>)</span>
+
+scala&gt; Sequence<span class='o'>(</span>1, 2<span class='o'>)</span>
+warning: there were deprecation warnings; re-run with -deprecation <span class='k'>for </span>details
+res2: Seq<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1, 2<span class='o'>)</span>
+</code></pre></div>
+<p>Set</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>scala</span><span class='o'>&gt;</span> <span class='nc'>Set</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>)</span>
+<span class='n'>res31</span><span class='k'>:</span> <span class='kt'>scala.collection.immutable.Set</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Set</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>)</span>
+</code></pre></div>
+<h3 id='id43'>一些描述接口</h3>
+
+<p><strong>IndexedSeq</strong> 快速随机访问元素以及快速长度操作。<a href='http://www.scala-lang.org/api/current/scala/collection/IndexedSeq.html'>API doc</a></p>
+
+<p><strong>LinearSeq</strong> 仅仅对于头部的地一个元素快速访问，同时快速尾部操作。<a href='http://www.scala-lang.org/api/current/scala/collection/LinearSeq.html'>API doc</a></p>
+
+<h3 id='mutable_vs_immutable'>Mutable vs. Immutable</h3>
+
+<p>immutable</p>
+
+<p>Pros</p>
+
+<ul>
+<li>Can&#8217;t change in multiple threads</li>
+</ul>
+
+<p>Con</p>
+
+<ul>
+<li>Can&#8217;t change at all</li>
+</ul>
+
+<p>Scala 允许我们pragmatic,它鼓励immutability 但是需要mutability 时有没有性能损失。这和var vs. val 非常相似。我们经常从val 开始然后在需要时回到var。</p>
+
+<p>我们青睐于从immutable 版本的集合量开始但是如果性能决定时也可以转化成为mutable。使用immutable 集合量意味着你不必突然改变多线程里的事情。</p>
+
+<h2 id='mutable'>Mutable</h2>
+
+<p>上面我们讨论的所有的classes 都是immutable。让我们讨论一下mutable 集合量的一般用法。</p>
+
+<p><strong>HashMap</strong> 定义了 getOrElseUpdate,+= <a href='http://www.scala-lang.org/api/current/scala/collection/mutable/HashMap.html'>HashMap API</a></p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>numbers</span> <span class='o'>=</span> collection.mutable.Map<span class='o'>(</span>1 -&gt; 2<span class='o'>)</span>
+numbers: scala.collection.mutable.Map<span class='o'>[</span>Int,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>1,2<span class='o'>))</span>
+
+scala&gt; numbers.get<span class='o'>(</span>1<span class='o'>)</span>
+res0: Option<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Some<span class='o'>(</span>2<span class='o'>)</span>
+
+scala&gt; numbers.getOrElseUpdate<span class='o'>(</span>2, 3<span class='o'>)</span>
+res54: <span class='nv'>Int</span> <span class='o'>=</span> 3
+
+scala&gt; numbers
+res55: scala.collection.mutable.Map<span class='o'>[</span>Int,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>2,3<span class='o'>)</span>, <span class='o'>(</span>1,2<span class='o'>))</span>
+
+scala&gt; numbers +<span class='o'>=</span> <span class='o'>(</span>4 -&gt; 1<span class='o'>)</span>
+res56: numbers.type <span class='o'>=</span> Map<span class='o'>((</span>2,3<span class='o'>)</span>, <span class='o'>(</span>4,1<span class='o'>)</span>, <span class='o'>(</span>1,2<span class='o'>))</span>
+</code></pre></div>
+<p><strong>ListBuffer 和 ArrayBuffer</strong>定义了+=<a href='http://www.scala-lang.org/api/current/scala/collection/mutable/ListBuffer.html'>ListBuffer API</a>,<a href='http://www.scala-lang.org/api/current/scala/collection/mutable/ArrayBuffer.html'>ArrayBuffer API</a></p>
+
+<p><strong>LinkedList and DoubleLinkedList</strong><a href='http://www.scala-lang.org/api/current/scala/collection/mutable/LinkedList.html'>LinkedList API</a></p>
+
+<p><strong>PriorityQueue</strong> <a href='http://www.scala-lang.org/api/current/scala/collection/mutable/PriorityQueue.html'>API 文档</a></p>
+
+<p><strong>Stack and ArrayStack</strong> <a href='http://www.scala-lang.org/api/current/scala/collection/mutable/Stack.html'>Stack API</a>,<a href='http://www.scala-lang.org/api/current/scala/collection/mutable/ArrayStack.html'>ArrayStack API</a></p>
+
+<p><strong>StringBuilder</strong> 很搞笑，StringBuilder 是一个集合量。<a href='http://www.scala-lang.org/api/current/scala/collection/mutable/StringBuilder.html'>API 文档</a></p>
+
+<h2 id='java_'>有JAVA 的日子里</h2>
+
+<p>你可以很容易的在Java 和Scala 集合量之间使用<a href='http://www.scala-lang.org/api/current/index.html#scala.collection.JavaConverters$'>JavaConverters package</a>里的conversions 很容易的进行转换。它常用含有asScala 方法的Java 集合两和含有asJava 方法的Scala 集合量来转换。</p>
+<div class='highlight'><pre><code class='scala'>   <span class='k'>import</span> <span class='nn'>scala.collection.JavaConverters._</span>
+   <span class='k'>val</span> <span class='n'>sl</span> <span class='k'>=</span> <span class='k'>new</span> <span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='n'>mutable</span><span class='o'>.</span><span class='nc'>ListBuffer</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span>
+   <span class='k'>val</span> <span class='n'>jl</span> <span class='k'>:</span> <span class='kt'>java.util.List</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='n'>sl</span><span class='o'>.</span><span class='n'>asJava</span>
+   <span class='k'>val</span> <span class='n'>sl2</span> <span class='k'>:</span> <span class='kt'>scala.collection.mutable.Buffer</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='n'>jl</span><span class='o'>.</span><span class='n'>asScala</span>
+   <span class='n'>assert</span><span class='o'>(</span><span class='n'>sl</span> <span class='n'>eq</span> <span class='n'>sl2</span><span class='o'>)</span>
+</code></pre></div>
+<p>两种方式转换：</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='nc'>Iterable</span> <span class='o'>&lt;=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>lang</span><span class='o'>.</span><span class='nc'>Iterable</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='nc'>Iterable</span> <span class='o'>&lt;=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>Collection</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='nc'>Iterator</span> <span class='o'>&lt;=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.{</span> <span class='nc'>Iterator</span><span class='o'>,</span> <span class='nc'>Enumeration</span> <span class='o'>}</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='n'>mutable</span><span class='o'>.</span><span class='nc'>Buffer</span> <span class='o'>&lt;=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>List</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='n'>mutable</span><span class='o'>.</span><span class='nc'>Set</span> <span class='o'>&lt;=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>Set</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='n'>mutable</span><span class='o'>.</span><span class='nc'>Map</span> <span class='o'>&lt;=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.{</span> <span class='nc'>Map</span><span class='o'>,</span> <span class='nc'>Dictionary</span> <span class='o'>}</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='n'>mutable</span><span class='o'>.</span><span class='nc'>ConcurrentMap</span> <span class='o'>&lt;=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='n'>concurrent</span><span class='o'>.</span><span class='nc'>ConcurrentMap</span>
+</code></pre></div>
+<p>另外，下面转换的一种方法会被提供。</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>cala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='nc'>Seq</span> <span class='k'>=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>List</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='n'>mutable</span><span class='o'>.</span><span class='nc'>Seq</span> <span class='k'>=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>List</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='nc'>Set</span> <span class='k'>=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>Set</span>
+<span class='n'>scala</span><span class='o'>.</span><span class='n'>collection</span><span class='o'>.</span><span class='nc'>Map</span> <span class='k'>=&gt;</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>Map</span>
+</code></pre></div>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>

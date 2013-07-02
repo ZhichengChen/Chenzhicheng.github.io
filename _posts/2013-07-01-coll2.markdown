@@ -1,0 +1,439 @@
+---
+layout: post
+title:  "更多的集合量"
+next_link:  specs
+prev_link:  sbt
+date:  2013-07-01 01:00:00
+categories: jekyll update
+---
+
+
+Scala 提供了一套漂亮的集合量实现。它也提供了一些抽象的集合量类型。这就允许你写可以和Foo 的集合量一起工作的代码而不用担心集合量是不是List，Set 或其它的什么。
+
+[这个页](http://www.decodified.com/scala/collections-api.xml)提供了默认实现的大量的方法以及Scaladoc 的链接。
+
+*  Basics 你会一直使用的集合量类型
+*  Hierarchy 集合量抽象
+*  Methods
+*  Mutable
+*  Java collections 如何启作用
+
+##The basics
+
+###List
+
+标准的链接的列表。
+  
+{% highlight bash %}
+
+scala> List(1, 2, 3)
+res0: List[Int] = List(1, 2, 3)
+
+{% endhighlight %}
+
+你可以向你在函数式编程里面期待的那样定义它。
+
+{% highlight bash %}
+
+scala> 1 :: 2 :: 3 :: Nil
+res1: List[Int] = List(1, 2, 3)
+
+{% endhighlight %}
+
+也可以看看[API 文档](http://www.scala-lang.org/api/current/scala/collection/immutable/List.html)
+
+Set
+
+Sets 不能有重复项
+
+{% highlight bash %}
+
+scala> Set(1, 1, 2)
+res2: scala.collection.immutable.Set[Int] = Set(1, 2)
+
+{% endhighlight %}
+
+Seq
+
+Sequences 有一个定义的顺序。
+
+{% highlight bash %}
+
+scala> Seq(1, 1, 2)
+res3: Seq[Int] = List(1, 1, 2)
+
+{% endhighlight %}
+
+(注意它返回一个List，Seq 是一个借口，List 是一个Seq 的可爱的实现。这里有一个工厂类Seq,就是你看到的，创建了Lists。)
+
+见[API 文档](http://www.scala-lang.org/api/current/scala/collection/Seq.html)
+
+Map
+
+Maps 是键值对容器。
+
+{% highlight bash %}
+
+scala> Map('a' -> 1, 'b' -> 2)
+res4: scala.collection.immutable.Map[Char,Int] = Map((a,1), (b,2))
+
+{% endhighlight %}
+
+见[API 文档](http://www.scala-lang.org/api/current/scala/collection/immutable/Map.html)
+
+##Hiberarchy
+
+所有的接口，包括所有的mutable 和immutable 包内有实现的这些以及特定的实现。
+
+###Traversable 
+
+所有的集合都可以被反转。这个接口定义了标准的函数组合器。这个组合器在foreach 方面被写入，其中集合量必须被实现。
+
+见[API 文档](http://twitter.github.io/scala_school/coll2.html#http://www.scala-lang.org/api/current/scala/collection/Traversable.html)
+
+### Iterable
+
+有一个iterator() 方法来给迭代所有的元素。
+
+见[API 文档](http://www.scala-lang.org/api/current/scala/collection/Iterable.html)
+
+###Seq
+
+通过ordering 排序元素。
+
+见[API 文档](http://www.scala-lang.org/api/current/scala/collection/Seq.html)
+
+###Set
+
+一个没有重复项的的集合。
+
+见[API 文档](http://www.scala-lang.org/api/current/scala/collection/immutable/Set.html)
+
+###Map
+
+键值对。
+
+见[API 文档](http://www.scala-lang.org/api/current/scala/collection/immutable/Map.html)
+
+##方法
+
+###Traversable
+
+下面所有的这些方法都是可见的。一样作为可自由重载它们的子类，参数和返回类型看起来并不是一直一样。
+
+{% highlight scala %}
+
+def head : A
+def tail : Traversable[A]
+
+{% endhighlight %}
+
+这是函数组合的定义。
+
+def map [B] (f: (A) => B) : CC[B]
+
+返回一个每个元素都被f 转化了的集合量。
+
+def foreach[U] (f:Elem => U): Unit
+
+对集合量里的每一个元素执行f。
+
+def find(p: (A) => Boolean) : Option[A]
+
+返回匹配谓词函数的地一个元素
+
+def filter (p: (A) => Boolean) : Traversable[A]
+
+返回匹配谓词函数的所有的元素。
+
+Partitioning:
+
+def partition (p: (A) => Boolean) : (Traversable[A], Traversable[A])
+
+根据为此函数把集合两分成两半
+
+def groupBy [K] (f: (A) => K) : Map[K, Traversable[A]]
+
+Conversion:
+
+很有趣，你可以把一个集合量类型转换成其它类型。
+
+{% highlight scala %}
+
+def toArray : Array[A]
+def toArray [B >: A] (implicit arg0: ClassManifest[B]) : Array[B]
+def toBuffer [B >: A] : Buffer[B]
+def toIndexedSeq [B >: A] : IndexedSeq[B]
+def toIterable : Iterable[A]
+def toIterator : Iterator[A]
+def toList : List[A]
+def toMap [T, U] (implicit ev: <:<[A, (T, U)]) : Map[T, U]
+def toSeq : Seq[A]
+def toSet [B >: A] : Set[B]
+def toStream : Stream[A]
+def toString () : String
+def toTraversable : Traversable[A]
+ 
+{% endhighlight %}
+
+让我们把Map 转换成数组。你会得到一个键值对的数组。
+
+{% highlight bash %}
+
+scala> Map(1 -> 2).toArray
+res41: Array[(Int, Int)] = Array((1,2))
+
+{% endhighlight %}
+
+###Iterable
+
+增加一个访问迭代器
+
+{% highlight scala %}
+
+def iterator: Iterator [A]
+
+{% endhighlight %}
+
+迭代器能给你带来什么呢？
+
+{% highlight scala %}
+
+def hasNext(): Boolean
+def next(): A
+
+{% endhighlight %}
+
+这是一个很像Java 的风格。你不会经常看到Scala 里面的迭代器使用，你很可能看见过函数组合器或者更深层次的应用。
+
+Set
+
+{% highlight scala %}
+
+  def contains(key: A): Boolean
+  def +(elem: A): Set[A]
+  def -(elem: A): Set[A]
+
+
+{% endhighlight %}
+
+Map
+
+有序的键值对可以通过键来查找。
+
+向apply() 传递一个List Pairs ，就像这样
+
+{% highlight bash %}
+
+scala> Map("a" -> 1, "b" -> 2)
+res0: scala.collection.immutable.Map[java.lang.String,Int] = Map((a,1), (b,2))
+
+{% endhighlight %}
+
+或者这样
+
+{% highlight bash %}
+
+scala> Map(("a", 2), ("b", 2))
+res0: scala.collection.immutable.Map[java.lang.String,Int] = Map((a,2), (b,2))
+
+{% endhighlight %}
+
+######题外话
+
+-> 是什么意思？这不是明确的语法，这是一个返回元组的方法。
+
+{% highlight bash %}
+
+scala> "a" -> 2
+
+res0: (java.lang.String, Int) = (a,2)
+
+{% endhighlight %}
+
+记住，这只是一个语法糖，全写如下
+
+{% highlight bash %}
+
+scala> "a".->(2)
+
+res1: (java.lang.String, Int) = (a,2)
+
+{% endhighlight %}
+
+你也可以通过 ++ 来构建
+
+{% highlight bash %}
+
+scala> Map.empty ++ List(("a", 1), ("b", 2), ("c", 3))
+res0: scala.collection.immutable.Map[java.lang.String,Int] = Map((a,1), (b,2), (c,3))
+
+{% endhighlight %}
+
+###通常使用的子类
+
+**HashSet 和 HashMap** 快速寻找，这些集合的最普遍的使用方式。[HashSet API](http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html),[HashMap API](http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html)
+
+**TreeMap** 一个SortedMap 的子类，可以顺序访问。[TreeMap API](http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html)
+
+**Vector** 快速随机选择和快速更新。[Vector API](http://www.scala-lang.org/api/current/scala/collection/immutable/TreeMap.html)
+
+{% highlight bash %}
+
+scala> IndexedSeq(1, 2, 3)
+res0: IndexedSeq[Int] = Vector(1, 2, 3)
+
+{% endhighlight %}
+
+Range 间隔分开的有序Int 序列。你在之前的counting for-loop 里面经常看到它的使用方法。[Range API](http://www.scala-lang.org/api/current/scala/collection/immutable/Range.html)
+
+{% highlight bash %}
+
+scala> for (i <- 1 to 3) { println(i) }
+1
+2
+3
+
+{% endhighlight %}
+
+Range  有标准可见的的函数组合。
+
+{% highlight bash %}
+
+scala> (1 to 3).map { i => i }
+res0: scala.collection.immutable.IndexedSeq[Int] = Vector(1, 2, 3)
+
+{% endhighlight %}
+
+## Defaults
+
+使用接口apply 方法会给你一个默认实现的实例，比如，Iterable(1,2) 返回一个默认实现的List。
+
+{% highlight bash %}
+
+scala> Iterable(1, 2)
+
+res0: Iterable[Int] = List(1, 2)
+
+{% endhighlight %}
+
+Seq 也一样，就像我们之前看到的
+
+{% highlight bash %}
+
+scala> Seq(1, 2)
+res3: Seq[Int] = List(1, 2)
+
+scala> Iterable(1, 2)
+res1: Iterable[Int] = List(1, 2)
+
+scala> Sequence(1, 2)
+warning: there were deprecation warnings; re-run with -deprecation for details
+res2: Seq[Int] = List(1, 2)
+
+{% endhighlight %}
+
+Set
+
+{% highlight scala %}
+
+scala> Set(1, 2)
+res31: scala.collection.immutable.Set[Int] = Set(1, 2)
+
+{% endhighlight %}
+
+###一些描述接口
+
+**IndexedSeq** 快速随机访问元素以及快速长度操作。[API doc](http://www.scala-lang.org/api/current/scala/collection/IndexedSeq.html)
+
+**LinearSeq** 仅仅对于头部的地一个元素快速访问，同时快速尾部操作。[API doc](http://www.scala-lang.org/api/current/scala/collection/LinearSeq.html)
+
+###Mutable vs. Immutable
+
+immutable
+
+Pros
+
+*  Can't change in multiple threads
+
+Con
+
+* Can't change at all
+
+Scala 允许我们pragmatic,它鼓励immutability 但是需要mutability 时有没有性能损失。这和var vs. val 非常相似。我们经常从val 开始然后在需要时回到var。
+
+我们青睐于从immutable 版本的集合量开始但是如果性能决定时也可以转化成为mutable。使用immutable 集合量意味着你不必突然改变多线程里的事情。
+
+##Mutable
+
+上面我们讨论的所有的classes 都是immutable。让我们讨论一下mutable 集合量的一般用法。
+
+**HashMap** 定义了 getOrElseUpdate,+= [HashMap API](http://www.scala-lang.org/api/current/scala/collection/mutable/HashMap.html)
+
+{% highlight bash %}
+
+scala> val numbers = collection.mutable.Map(1 -> 2)
+numbers: scala.collection.mutable.Map[Int,Int] = Map((1,2))
+
+scala> numbers.get(1)
+res0: Option[Int] = Some(2)
+
+scala> numbers.getOrElseUpdate(2, 3)
+res54: Int = 3
+
+scala> numbers
+res55: scala.collection.mutable.Map[Int,Int] = Map((2,3), (1,2))
+
+scala> numbers += (4 -> 1)
+res56: numbers.type = Map((2,3), (4,1), (1,2))
+
+{% endhighlight %}
+
+**ListBuffer 和 ArrayBuffer**定义了+=[ListBuffer API](http://www.scala-lang.org/api/current/scala/collection/mutable/ListBuffer.html),[ArrayBuffer API](http://www.scala-lang.org/api/current/scala/collection/mutable/ArrayBuffer.html)
+
+**LinkedList and DoubleLinkedList**[LinkedList API](http://www.scala-lang.org/api/current/scala/collection/mutable/LinkedList.html)
+
+**PriorityQueue** [API 文档](http://www.scala-lang.org/api/current/scala/collection/mutable/PriorityQueue.html)
+
+**Stack and ArrayStack** [Stack API](http://www.scala-lang.org/api/current/scala/collection/mutable/Stack.html),[ArrayStack API](http://www.scala-lang.org/api/current/scala/collection/mutable/ArrayStack.html)
+
+**StringBuilder** 很搞笑，StringBuilder 是一个集合量。[API 文档](http://www.scala-lang.org/api/current/scala/collection/mutable/StringBuilder.html)
+
+##有JAVA 的日子里
+
+你可以很容易的在Java 和Scala 集合量之间使用[JavaConverters package](http://www.scala-lang.org/api/current/index.html#scala.collection.JavaConverters$)里的conversions 很容易的进行转换。它常用含有asScala 方法的Java 集合两和含有asJava 方法的Scala 集合量来转换。
+
+{% highlight scala %}
+
+   import scala.collection.JavaConverters._
+   val sl = new scala.collection.mutable.ListBuffer[Int]
+   val jl : java.util.List[Int] = sl.asJava
+   val sl2 : scala.collection.mutable.Buffer[Int] = jl.asScala
+   assert(sl eq sl2)
+
+{% endhighlight %}
+
+两种方式转换：
+
+{% highlight scala %}
+
+scala.collection.Iterable <=> java.lang.Iterable
+scala.collection.Iterable <=> java.util.Collection
+scala.collection.Iterator <=> java.util.{ Iterator, Enumeration }
+scala.collection.mutable.Buffer <=> java.util.List
+scala.collection.mutable.Set <=> java.util.Set
+scala.collection.mutable.Map <=> java.util.{ Map, Dictionary }
+scala.collection.mutable.ConcurrentMap <=> java.util.concurrent.ConcurrentMap
+
+{% endhighlight %}
+
+另外，下面转换的一种方法会被提供。
+
+{% highlight scala %}
+
+cala.collection.Seq => java.util.List
+scala.collection.mutable.Seq => java.util.List
+scala.collection.Set => java.util.Set
+scala.collection.Map => java.util.Map
+
+{% endhighlight %}

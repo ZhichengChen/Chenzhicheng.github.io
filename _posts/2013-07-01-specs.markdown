@@ -1,0 +1,355 @@
+---
+layout: post
+title:  "用 specs 来测试"
+next_link:  concurrency
+prev_link:  coll2
+date:  2013-07-01 02:00:00
+categories: jekyll update
+---
+
+
+课程涵盖了用Specs 测试，一个Scala 的行为驱动设计(BDD)框架。
+
+*  扩展规范 extends Specification  
+  *  嵌套的例子 nested examples  
+*  执行模型 Execution Model
+*  安装和拆解 Setup and TearDown
+  *  首先执行 doFirst
+  *  之前执行 doBefore  
+  *  之后执行 doAfter  
+*  匹配 Matchers
+  *  一定想等 mustEqual  
+  *  包含 contains
+  *  相同大小 sameSize
+  *  写下你自己的 Write your own
+* Mocks 测试
+* Spies 测试
+* sbt 里运行 run in sbt
+ 
+## 扩展规范 extends Specification
+
+来，直接看代码。
+
+{% highlight scala %}
+
+import org.specs._
+
+object ArithmeticSpec extends Specification {
+  "Arithmetic" should {
+    "add two numbers" in {
+      1 + 1 mustEqual 2
+    }
+    "add three numbers" in {
+      1 + 1 + 1 mustEqual 3
+    }
+  }
+}
+
+{% endhighlight %}
+ 
+**Arithmetic**是**在系统下面的规范 System Under Specification**
+
+**add**是上下文。
+
+**add two number** 和**add three numbers** 是例子。
+
+mustEqual 表示**期望**。
+
+1 mustEqual 1 是在你写真正测试之前的一个普通的占位符**期望**。所有的例子至少要有一个期望。
+
+###副本 Duplication
+
+注意两个测试怎样才能都 add 到它们的名字里呢？我们可以通过**嵌套**期待除去它。
+
+{% highlight scala %}
+
+import org.specs._
+
+object ArithmeticSpec extends Specification {
+  "Arithmetic" should {
+    "add" in {
+      "two numbers" in {
+        1 + 1 mustEqual 2
+      }
+      "three numbers" in {
+        1 + 1 + 1 mustEqual 3
+      }
+    }
+  }
+}
+
+{% endhighlight %}
+
+##执行模型 Execution Model
+
+{% highlight scala %}
+
+object ExecSpec extends Specification {
+  "Mutations are isolated" should {
+    var x = 0
+    "x equals 1 if we set it." in {
+      x = 1
+      x mustEqual 1
+    }
+    "x is the default value if we don't change it" in {
+      x mustEqual 0
+    }
+  }
+}
+
+{% endhighlight %}
+
+##安装，拆解 Setup,Teardown
+
+###之前执行&之后执行 doBefore & doAfter
+
+{% highlight scala %}
+
+"my system" should {
+  doBefore { resetTheSystem() /** 用户定义重置函数 **/ }
+  "mess up the system" in {...}
+  "and again" in {...}
+  doAfter { cleanThingsUp() }
+}
+
+{% endhighlight %}
+
+注意 doBefore/doAfter 仅仅在叶例子里运行。
+
+###首先执行 & 最后执行 doFirst & doLast
+
+doFirst/doLast 是针对于但设置的。（需要例子，我没用过呀）
+
+{% highlight scala %}
+
+"Foo" should {
+  doFirst { openTheCurtains() }
+  "test stateless methods" in {...}
+  "test other stateless methods" in {...}
+  doLast { closeTheCurtains() }
+}
+{% endhighlight %}
+
+## 匹配Matchers
+
+你有数据，你想要让它正确，让我们来浏览一下更普遍的匹配用法。（也可见 [匹配向导](http://code.google.com/p/specs/wiki/MatchersGuide))
+
+###mustEqual 一定相等
+
+我们已经见多一些必须匹配的例子。
+
+{% highlight scala %}
+
+1 mustEqual 1
+
+"a" mustEqual "a"
+
+{% endhighlight %}
+
+参照equality,value equality。
+
+###按照顺序的元素 element in a Sequence
+
+{% highlight scala %}
+
+val numbers = List(1, 2, 3)
+
+numbers must contain(1)
+numbers must not contain(4)
+
+numbers must containAll(List(1, 2, 3))
+numbers must containInOrder(List(1, 2, 3))
+
+List(1, List(2, 3, List(4)), 5) must haveTheSameElementsAs(List(5, List(List(4), 2, 3), 1))
+
+{% endhighlight %}
+
+###Map 里面的项
+
+{% highlight scala %}
+
+map nust haveKey(k)
+map must notHaveKey(k)
+
+map must haveValue(v)
+map must notHaveValue(v) 
+
+{% endhighlight %}
+
+###数字 Number
+
+{% highlight scala %}
+
+a must beGreaterThan(b)
+a must beGreaterThanOrEqualTo(b)
+
+a must beLessThan(b)
+a must beLessThanOrEqualTo(b)
+
+a must beCloseTo(b, delta)
+
+{% endhighlight %}
+
+###可选项
+
+{% highlight scala %}
+
+a must beNone
+
+a must beSome[Type]
+
+a must beSomething
+
+a must beSome(value)
+
+{% endhighlight %}
+
+###ThrowA
+
+{% highlight scala %}
+
+ must throwA[WhateverException]
+
+{% endhighlight %}
+
+这是一个包含body 里面失败的try catch 的一个简写。
+
+你也可以期待一个指定的信息。
+
+{% highlight scala %}
+
+a must throwA(WhateverException("message"))
+
+{% endhighlight %}
+
+你也可以匹配异常
+
+{% highlight scala %}
+
+a must throwA(new Exception) like {
+  case Exception(m) => m.startsWith("bad")
+}
+
+{% endhighlight %}
+
+###写下你自己的匹配 Write your own Matchers
+
+{% highlight scala %}
+
+import org.specs.matcher.Matcher
+
+{% endhighlight %}
+
+####做为val 
+
+{% highlight scala %}
+
+"A matcher" should {
+  "be created as a val" in {
+    val beEven = new Matcher[Int] {
+      def apply(n: => Int) = {
+        (n % 2 == 0, "%d is even".format(n), "%d is odd".format(n))
+      }
+    }
+    2 must beEven
+  }
+}
+
+{% endhighlight %}
+
+约定是返回一个包含期待值是否为true以及什么时候不是true的信息的元组。
+
+####作为一个case class
+
+{% highlight scala %}
+
+case class beEven(b: Int) extends Matcher[Int]() {
+  def apply(n: => Int) =  (n % 2 == 0, "%d is even".format(n), "%d is odd".format(n))
+}
+
+{% endhighlight %}
+
+使用case class 让它更可共享。
+
+##Mocks
+
+{% highlight scala %}
+
+import org.specs.Specification
+import org.specs.mock.Mockito
+
+class Foo[T] {
+  def get(i: Int): T
+}
+
+object MockExampleSpec extends Specification with Mockito {
+  val m = mock[Foo[String]]
+
+  m.get(0) returns "one"
+
+  m.get(0)
+
+  there was one(m).get(0)
+
+  there was no(m).get(1)
+}
+
+{% endhighlight %}
+
+也可以看[使用Mockito](http://code.google.com/p/specs/wiki/UsingMockito)
+
+##Spies
+
+Spies 也可以用在一些真实类的“部分mocking”：
+
+{% highlight scala %}
+
+val list = new LinkedList[String]
+val spiedList = spy(list)
+
+// 方法可以存在spy上
+spiedList.size returns 100
+
+// 也可以用其它方法
+spiedList.add("one")
+spiedList.add("two")
+
+// 在一个spy 上进行验证
+there was one(spiedList).add("one")
+
+{% endhighlight %}
+
+不管怎样，使用spies 会感到很奇怪。
+
+{% highlight scala %}
+
+// 如果list 是空的, 会抛出一个IndexOutOfBoundsException 异常
+spiedList.get(0) returns "one"
+
+{% endhighlight %}
+
+doReturn 必须使用这个case
+
+{% highlight scala %}
+
+doReturn("one").when(spiedList).get(0)
+
+{% endhighlight %}
+
+##在sbt 里运行单个的specs
+
+{% highlight bash %}
+
+t-only com.twitter.yourservice.UserSpec
+
+{% endhighlight %}
+
+接着会运行这个spec。
+
+{% highlight bash %}
+
+> ~ test-only com.twitter.yourservice.UserSpec
+
+{% endhighlight %}
+
+会循环运行测试，每个文件修改都会触发测试运行。

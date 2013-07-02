@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Simple Build Tool"
+title:  "简单构建工具 Simple Build Tool"
 next_link:  coll2
 prev_link:  advanced-types
 date:  2013-07-01 00:00:00

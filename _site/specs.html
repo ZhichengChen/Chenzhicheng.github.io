@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>用 specs 来测试</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">用 specs 来测试</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "coll2.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="concurrency.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>课程涵盖了用Specs 测试，一个Scala 的行为驱动设计(BDD)框架。</p>
+
+<ul>
+<li>
+<p>扩展规范 extends Specification<br />* 嵌套的例子 nested examples</p>
+</li>
+
+<li>
+<p>执行模型 Execution Model</p>
+</li>
+
+<li>
+<p>安装和拆解 Setup and TearDown</p>
+
+<ul>
+<li>首先执行 doFirst</li>
+
+<li>之前执行 doBefore</li>
+
+<li>之后执行 doAfter</li>
+</ul>
+</li>
+
+<li>
+<p>匹配 Matchers</p>
+
+<ul>
+<li>一定想等 mustEqual</li>
+
+<li>包含 contains</li>
+
+<li>相同大小 sameSize</li>
+
+<li>写下你自己的 Write your own</li>
+</ul>
+</li>
+
+<li>
+<p>Mocks 测试</p>
+</li>
+
+<li>
+<p>Spies 测试</p>
+</li>
+
+<li>
+<p>sbt 里运行 run in sbt</p>
+</li>
+</ul>
+
+<h2 id='_extends_specification'>扩展规范 extends Specification</h2>
+
+<p>来，直接看代码。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>org.specs._</span>
+
+<span class='k'>object</span> <span class='nc'>ArithmeticSpec</span> <span class='k'>extends</span> <span class='nc'>Specification</span> <span class='o'>{</span>
+  <span class='s'>&quot;Arithmetic&quot;</span> <span class='n'>should</span> <span class='o'>{</span>
+    <span class='s'>&quot;add two numbers&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='mi'>1</span> <span class='o'>+</span> <span class='mi'>1</span> <span class='n'>mustEqual</span> <span class='mi'>2</span>
+    <span class='o'>}</span>
+    <span class='s'>&quot;add three numbers&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='mi'>1</span> <span class='o'>+</span> <span class='mi'>1</span> <span class='o'>+</span> <span class='mi'>1</span> <span class='n'>mustEqual</span> <span class='mi'>3</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p><strong>Arithmetic</strong>是<strong>在系统下面的规范 System Under Specification</strong></p>
+
+<p><strong>add</strong>是上下文。</p>
+
+<p><strong>add two number</strong> 和<strong>add three numbers</strong> 是例子。</p>
+
+<p>mustEqual 表示<strong>期望</strong>。</p>
+
+<p>1 mustEqual 1 是在你写真正测试之前的一个普通的占位符<strong>期望</strong>。所有的例子至少要有一个期望。</p>
+
+<h3 id='_duplication'>副本 Duplication</h3>
+
+<p>注意两个测试怎样才能都 add 到它们的名字里呢？我们可以通过<strong>嵌套</strong>期待除去它。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>org.specs._</span>
+
+<span class='k'>object</span> <span class='nc'>ArithmeticSpec</span> <span class='k'>extends</span> <span class='nc'>Specification</span> <span class='o'>{</span>
+  <span class='s'>&quot;Arithmetic&quot;</span> <span class='n'>should</span> <span class='o'>{</span>
+    <span class='s'>&quot;add&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='s'>&quot;two numbers&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+        <span class='mi'>1</span> <span class='o'>+</span> <span class='mi'>1</span> <span class='n'>mustEqual</span> <span class='mi'>2</span>
+      <span class='o'>}</span>
+      <span class='s'>&quot;three numbers&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+        <span class='mi'>1</span> <span class='o'>+</span> <span class='mi'>1</span> <span class='o'>+</span> <span class='mi'>1</span> <span class='n'>mustEqual</span> <span class='mi'>3</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='_execution_model'>执行模型 Execution Model</h2>
+<div class='highlight'><pre><code class='scala'><span class='k'>object</span> <span class='nc'>ExecSpec</span> <span class='k'>extends</span> <span class='nc'>Specification</span> <span class='o'>{</span>
+  <span class='s'>&quot;Mutations are isolated&quot;</span> <span class='n'>should</span> <span class='o'>{</span>
+    <span class='k'>var</span> <span class='n'>x</span> <span class='k'>=</span> <span class='mi'>0</span>
+    <span class='s'>&quot;x equals 1 if we set it.&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='n'>x</span> <span class='k'>=</span> <span class='mi'>1</span>
+      <span class='n'>x</span> <span class='n'>mustEqual</span> <span class='mi'>1</span>
+    <span class='o'>}</span>
+    <span class='s'>&quot;x is the default value if we don&#39;t change it&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+      <span class='n'>x</span> <span class='n'>mustEqual</span> <span class='mi'>0</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='_setupteardown'>安装，拆解 Setup,Teardown</h2>
+
+<h3 id='_dobefore__doafter'>之前执行&amp;之后执行 doBefore &amp; doAfter</h3>
+<div class='highlight'><pre><code class='scala'><span class='s'>&quot;my system&quot;</span> <span class='n'>should</span> <span class='o'>{</span>
+  <span class='n'>doBefore</span> <span class='o'>{</span> <span class='n'>resetTheSystem</span><span class='o'>()</span> <span class='cm'>/** 用户定义重置函数 **/</span> <span class='o'>}</span>
+  <span class='s'>&quot;mess up the system&quot;</span> <span class='n'>in</span> <span class='o'>{...}</span>
+  <span class='s'>&quot;and again&quot;</span> <span class='n'>in</span> <span class='o'>{...}</span>
+  <span class='n'>doAfter</span> <span class='o'>{</span> <span class='n'>cleanThingsUp</span><span class='o'>()</span> <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>注意 doBefore/doAfter 仅仅在叶例子里运行。</p>
+
+<h3 id='___dofirst__dolast'>首先执行 &amp; 最后执行 doFirst &amp; doLast</h3>
+
+<p>doFirst/doLast 是针对于但设置的。（需要例子，我没用过呀）</p>
+<div class='highlight'><pre><code class='scala'><span class='s'>&quot;Foo&quot;</span> <span class='n'>should</span> <span class='o'>{</span>
+  <span class='n'>doFirst</span> <span class='o'>{</span> <span class='n'>openTheCurtains</span><span class='o'>()</span> <span class='o'>}</span>
+  <span class='s'>&quot;test stateless methods&quot;</span> <span class='n'>in</span> <span class='o'>{...}</span>
+  <span class='s'>&quot;test other stateless methods&quot;</span> <span class='n'>in</span> <span class='o'>{...}</span>
+  <span class='n'>doLast</span> <span class='o'>{</span> <span class='n'>closeTheCurtains</span><span class='o'>()</span> <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='matchers'>匹配Matchers</h2>
+
+<p>你有数据，你想要让它正确，让我们来浏览一下更普遍的匹配用法。（也可见 <a href='http://code.google.com/p/specs/wiki/MatchersGuide'>匹配向导</a>)</p>
+
+<h3 id='mustequal_'>mustEqual 一定相等</h3>
+
+<p>我们已经见多一些必须匹配的例子。</p>
+<div class='highlight'><pre><code class='scala'><span class='mi'>1</span> <span class='n'>mustEqual</span> <span class='mi'>1</span>
+
+<span class='s'>&quot;a&quot;</span> <span class='n'>mustEqual</span> <span class='s'>&quot;a&quot;</span>
+</code></pre></div>
+<p>参照equality,value equality。</p>
+
+<h3 id='_element_in_a_sequence'>按照顺序的元素 element in a Sequence</h3>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>numbers</span> <span class='k'>=</span> <span class='nc'>List</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>,</span> <span class='mi'>3</span><span class='o'>)</span>
+
+<span class='n'>numbers</span> <span class='n'>must</span> <span class='n'>contain</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+<span class='n'>numbers</span> <span class='n'>must</span> <span class='n'>not</span> <span class='n'>contain</span><span class='o'>(</span><span class='mi'>4</span><span class='o'>)</span>
+
+<span class='n'>numbers</span> <span class='n'>must</span> <span class='n'>containAll</span><span class='o'>(</span><span class='nc'>List</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>,</span> <span class='mi'>3</span><span class='o'>))</span>
+<span class='n'>numbers</span> <span class='n'>must</span> <span class='n'>containInOrder</span><span class='o'>(</span><span class='nc'>List</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>,</span> <span class='mi'>3</span><span class='o'>))</span>
+
+<span class='nc'>List</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='nc'>List</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>,</span> <span class='mi'>3</span><span class='o'>,</span> <span class='nc'>List</span><span class='o'>(</span><span class='mi'>4</span><span class='o'>)),</span> <span class='mi'>5</span><span class='o'>)</span> <span class='n'>must</span> <span class='n'>haveTheSameElementsAs</span><span class='o'>(</span><span class='nc'>List</span><span class='o'>(</span><span class='mi'>5</span><span class='o'>,</span> <span class='nc'>List</span><span class='o'>(</span><span class='nc'>List</span><span class='o'>(</span><span class='mi'>4</span><span class='o'>),</span> <span class='mi'>2</span><span class='o'>,</span> <span class='mi'>3</span><span class='o'>),</span> <span class='mi'>1</span><span class='o'>))</span>
+</code></pre></div>
+<h3 id='map_'>Map 里面的项</h3>
+<div class='highlight'><pre><code class='scala'><span class='n'>map</span> <span class='n'>nust</span> <span class='n'>haveKey</span><span class='o'>(</span><span class='n'>k</span><span class='o'>)</span>
+<span class='n'>map</span> <span class='n'>must</span> <span class='n'>notHaveKey</span><span class='o'>(</span><span class='n'>k</span><span class='o'>)</span>
+
+<span class='n'>map</span> <span class='n'>must</span> <span class='n'>haveValue</span><span class='o'>(</span><span class='n'>v</span><span class='o'>)</span>
+<span class='n'>map</span> <span class='n'>must</span> <span class='n'>notHaveValue</span><span class='o'>(</span><span class='n'>v</span><span class='o'>)</span> 
+</code></pre></div>
+<h3 id='_number'>数字 Number</h3>
+<div class='highlight'><pre><code class='scala'><span class='n'>a</span> <span class='n'>must</span> <span class='n'>beGreaterThan</span><span class='o'>(</span><span class='n'>b</span><span class='o'>)</span>
+<span class='n'>a</span> <span class='n'>must</span> <span class='n'>beGreaterThanOrEqualTo</span><span class='o'>(</span><span class='n'>b</span><span class='o'>)</span>
+
+<span class='n'>a</span> <span class='n'>must</span> <span class='n'>beLessThan</span><span class='o'>(</span><span class='n'>b</span><span class='o'>)</span>
+<span class='n'>a</span> <span class='n'>must</span> <span class='n'>beLessThanOrEqualTo</span><span class='o'>(</span><span class='n'>b</span><span class='o'>)</span>
+
+<span class='n'>a</span> <span class='n'>must</span> <span class='n'>beCloseTo</span><span class='o'>(</span><span class='n'>b</span><span class='o'>,</span> <span class='n'>delta</span><span class='o'>)</span>
+</code></pre></div>
+<h3 id='id44'>可选项</h3>
+<div class='highlight'><pre><code class='scala'><span class='n'>a</span> <span class='n'>must</span> <span class='n'>beNone</span>
+
+<span class='n'>a</span> <span class='n'>must</span> <span class='n'>beSome</span><span class='o'>[</span><span class='kt'>Type</span><span class='o'>]</span>
+
+<span class='n'>a</span> <span class='n'>must</span> <span class='n'>beSomething</span>
+
+<span class='n'>a</span> <span class='n'>must</span> <span class='n'>beSome</span><span class='o'>(</span><span class='n'>value</span><span class='o'>)</span>
+</code></pre></div>
+<h3 id='throwa'>ThrowA</h3>
+<div class='highlight'><pre><code class='scala'> <span class='n'>must</span> <span class='n'>throwA</span><span class='o'>[</span><span class='kt'>WhateverException</span><span class='o'>]</span>
+</code></pre></div>
+<p>这是一个包含body 里面失败的try catch 的一个简写。</p>
+
+<p>你也可以期待一个指定的信息。</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>a</span> <span class='n'>must</span> <span class='n'>throwA</span><span class='o'>(</span><span class='nc'>WhateverException</span><span class='o'>(</span><span class='s'>&quot;message&quot;</span><span class='o'>))</span>
+</code></pre></div>
+<p>你也可以匹配异常</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>a</span> <span class='n'>must</span> <span class='n'>throwA</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>Exception</span><span class='o'>)</span> <span class='n'>like</span> <span class='o'>{</span>
+  <span class='k'>case</span> <span class='nc'>Exception</span><span class='o'>(</span><span class='n'>m</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='n'>m</span><span class='o'>.</span><span class='n'>startsWith</span><span class='o'>(</span><span class='s'>&quot;bad&quot;</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h3 id='_write_your_own_matchers'>写下你自己的匹配 Write your own Matchers</h3>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>org.specs.matcher.Matcher</span>
+</code></pre></div>
+<h4 id='val'>做为val</h4>
+<div class='highlight'><pre><code class='scala'><span class='s'>&quot;A matcher&quot;</span> <span class='n'>should</span> <span class='o'>{</span>
+  <span class='s'>&quot;be created as a val&quot;</span> <span class='n'>in</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>beEven</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Matcher</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='o'>{</span>
+      <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>n</span><span class='k'>:</span> <span class='o'>=&gt;</span> <span class='nc'>Int</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+        <span class='o'>(</span><span class='n'>n</span> <span class='o'>%</span> <span class='mi'>2</span> <span class='o'>==</span> <span class='mi'>0</span><span class='o'>,</span> <span class='s'>&quot;%d is even&quot;</span><span class='o'>.</span><span class='n'>format</span><span class='o'>(</span><span class='n'>n</span><span class='o'>),</span> <span class='s'>&quot;%d is odd&quot;</span><span class='o'>.</span><span class='n'>format</span><span class='o'>(</span><span class='n'>n</span><span class='o'>))</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+    <span class='mi'>2</span> <span class='n'>must</span> <span class='n'>beEven</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>约定是返回一个包含期待值是否为true以及什么时候不是true的信息的元组。</p>
+
+<h4 id='case_class'>作为一个case class</h4>
+<div class='highlight'><pre><code class='scala'><span class='k'>case</span> <span class='k'>class</span> <span class='nc'>beEven</span><span class='o'>(</span><span class='n'>b</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>Matcher</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]()</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>n</span><span class='k'>:</span> <span class='o'>=&gt;</span> <span class='nc'>Int</span><span class='o'>)</span> <span class='k'>=</span>  <span class='o'>(</span><span class='n'>n</span> <span class='o'>%</span> <span class='mi'>2</span> <span class='o'>==</span> <span class='mi'>0</span><span class='o'>,</span> <span class='s'>&quot;%d is even&quot;</span><span class='o'>.</span><span class='n'>format</span><span class='o'>(</span><span class='n'>n</span><span class='o'>),</span> <span class='s'>&quot;%d is odd&quot;</span><span class='o'>.</span><span class='n'>format</span><span class='o'>(</span><span class='n'>n</span><span class='o'>))</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>使用case class 让它更可共享。</p>
+
+<h2 id='mocks'>Mocks</h2>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>org.specs.Specification</span>
+<span class='k'>import</span> <span class='nn'>org.specs.mock.Mockito</span>
+
+<span class='k'>class</span> <span class='nc'>Foo</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>]</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>get</span><span class='o'>(</span><span class='n'>i</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>T</span>
+<span class='o'>}</span>
+
+<span class='k'>object</span> <span class='nc'>MockExampleSpec</span> <span class='k'>extends</span> <span class='nc'>Specification</span> <span class='k'>with</span> <span class='nc'>Mockito</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>m</span> <span class='k'>=</span> <span class='n'>mock</span><span class='o'>[</span><span class='kt'>Foo</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]]</span>
+
+  <span class='n'>m</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='mi'>0</span><span class='o'>)</span> <span class='n'>returns</span> <span class='s'>&quot;one&quot;</span>
+
+  <span class='n'>m</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='mi'>0</span><span class='o'>)</span>
+
+  <span class='n'>there</span> <span class='n'>was</span> <span class='n'>one</span><span class='o'>(</span><span class='n'>m</span><span class='o'>).</span><span class='n'>get</span><span class='o'>(</span><span class='mi'>0</span><span class='o'>)</span>
+
+  <span class='n'>there</span> <span class='n'>was</span> <span class='n'>no</span><span class='o'>(</span><span class='n'>m</span><span class='o'>).</span><span class='n'>get</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>也可以看<a href='http://code.google.com/p/specs/wiki/UsingMockito'>使用Mockito</a></p>
+
+<h2 id='spies'>Spies</h2>
+
+<p>Spies 也可以用在一些真实类的“部分mocking”：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>list</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>LinkedList</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span>
+<span class='k'>val</span> <span class='n'>spiedList</span> <span class='k'>=</span> <span class='n'>spy</span><span class='o'>(</span><span class='n'>list</span><span class='o'>)</span>
+
+<span class='c1'>// 方法可以存在spy上</span>
+<span class='n'>spiedList</span><span class='o'>.</span><span class='n'>size</span> <span class='n'>returns</span> <span class='mi'>100</span>
+
+<span class='c1'>// 也可以用其它方法</span>
+<span class='n'>spiedList</span><span class='o'>.</span><span class='n'>add</span><span class='o'>(</span><span class='s'>&quot;one&quot;</span><span class='o'>)</span>
+<span class='n'>spiedList</span><span class='o'>.</span><span class='n'>add</span><span class='o'>(</span><span class='s'>&quot;two&quot;</span><span class='o'>)</span>
+
+<span class='c1'>// 在一个spy 上进行验证</span>
+<span class='n'>there</span> <span class='n'>was</span> <span class='n'>one</span><span class='o'>(</span><span class='n'>spiedList</span><span class='o'>).</span><span class='n'>add</span><span class='o'>(</span><span class='s'>&quot;one&quot;</span><span class='o'>)</span>
+</code></pre></div>
+<p>不管怎样，使用spies 会感到很奇怪。</p>
+<div class='highlight'><pre><code class='scala'><span class='c1'>// 如果list 是空的, 会抛出一个IndexOutOfBoundsException 异常</span>
+<span class='n'>spiedList</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='mi'>0</span><span class='o'>)</span> <span class='n'>returns</span> <span class='s'>&quot;one&quot;</span>
+</code></pre></div>
+<p>doReturn 必须使用这个case</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>doReturn</span><span class='o'>(</span><span class='s'>&quot;one&quot;</span><span class='o'>).</span><span class='n'>when</span><span class='o'>(</span><span class='n'>spiedList</span><span class='o'>).</span><span class='n'>get</span><span class='o'>(</span><span class='mi'>0</span><span class='o'>)</span>
+</code></pre></div>
+<h2 id='sbt_specs'>在sbt 里运行单个的specs</h2>
+<div class='highlight'><pre><code class='bash'>t-only com.twitter.yourservice.UserSpec
+</code></pre></div>
+<p>接着会运行这个spec。</p>
+<div class='highlight'><pre><code class='bash'>&gt; ~ <span class='nb'>test</span>-only com.twitter.yourservice.UserSpec
+</code></pre></div>
+<p>会循环运行测试，每个文件修改都会触发测试运行。</p>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>
