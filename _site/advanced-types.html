@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>高级类型</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">高级类型</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "type-basics.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="sbt.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>课程包括</p>
+
+<ul>
+<li>视图边界（“类型 classes”）View bounds (&#8220;type classes&#8221;)</li>
+
+<li>其它类型边界 Other Type Bounds</li>
+
+<li>高级类型 &amp; 转换多态 Higher-kinded types &amp; ad-hoc polymorphism</li>
+
+<li>F-边界多态 / 递归类型 F-bounded polymorphism / recursive types</li>
+
+<li>结构类型 Structural types</li>
+
+<li>抽象类型成员 Abstract types members</li>
+
+<li>类型清除 &amp; 清单 Type erasures &amp; manifests</li>
+
+<li>Case 学习： Finagle Case study: Finagle</li>
+</ul>
+
+<h2 id='_classes'>视图边界（“类型 classes”）</h2>
+
+<p>有时候你不需要指定一个类型是不是另一个的子类/同类/超类，因为你可以用conversions 来欺骗它。一个视图边界指定的类型可以被其它的类看到。这对需要读取一个类却不需要修改一个类的操作来说很有意义。</p>
+
+<p>Implicit 函数允许自动conversion。更精确的说，当它能帮助明确类型推断时允许请求式函数应用。比如：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; implicit def strToInt<span class='o'>(</span>x: String<span class='o'>)</span> <span class='o'>=</span> x.toInt
+strToInt: <span class='o'>(</span>x: String<span class='o'>)</span>Int
+
+scala&gt; <span class='s2'>&quot;123&quot;</span>
+res0: java.lang.String <span class='o'>=</span> 123
+
+scala&gt; val y: <span class='nv'>Int</span> <span class='o'>=</span> <span class='s2'>&quot;123&quot;</span>
+y: <span class='nv'>Int</span> <span class='o'>=</span> 123
+
+scala&gt; math.max<span class='o'>(</span><span class='s2'>&quot;123&quot;</span>,111<span class='o'>)</span>
+res1: <span class='nv'>Int</span> <span class='o'>=</span> 123
+</code></pre></div>
+<p>视图边界，就像类型边界一样，要求一个函数存在给定的类型。你可以通过 &lt;% 指定一个类型边界，比如，</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class Container<span class='o'>[</span>A &lt;% Int<span class='o'>]</span> <span class='o'>{</span> def addIt<span class='o'>(</span>x: A<span class='o'>)</span> <span class='o'>=</span> 123 + x<span class='o'>}</span>
+defined class Container
+</code></pre></div>
+<p>这就是说A 有一个可见的Int。让我们来试一下。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; <span class='o'>(</span>new Container<span class='o'>[</span>String<span class='o'>])</span>.addIt<span class='o'>(</span><span class='s2'>&quot;123&quot;</span><span class='o'>)</span>
+res11: <span class='nv'>Int</span> <span class='o'>=</span> 246
+
+scala&gt; <span class='o'>(</span>new Container<span class='o'>[</span>Int<span class='o'>])</span>.addIt<span class='o'>(</span>123<span class='o'>)</span>
+res12: <span class='nv'>Int</span> <span class='o'>=</span> 246
+
+scala&gt; <span class='o'>(</span>new Container<span class='o'>[</span>Float<span class='o'>])</span>.addIt<span class='o'>(</span>123.2F<span class='o'>)</span>
+&lt;console&gt;:8: error: could not find implicit value <span class='k'>for </span>evidence parameter of <span class='nb'>type</span><span class='o'>(</span>Float<span class='o'>)</span> <span class='o'>=</span>&gt; Int
+       <span class='o'>(</span>new Container<span class='o'>[</span>Float<span class='o'>])</span>.addIt<span class='o'>(</span>123.2<span class='o'>)</span>
+        ^
+</code></pre></div>
+<h2 id='id81'>其它类型边界</h2>
+
+<p>方法可以通过implicit 参数生效更多复杂的类型参数。比如，Lift 支持对数字进行sum 当然其它类型不可以。唉，Scala 的数字类型并没有调用超类共享，因此我们不能仅仅说T&lt;: Number。相反，为了让它可以工作，Scala 的数学类库<a href='http://www.azavea.com/blogs/labs/2011/06/scalas-numeric-type-class-pt-1/'>为合适的类型定义了一个ieimplicit 的Numberic<span>T</span></a> 。然后List 使用它来定义：</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>sum</span><span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>](</span><span class='k'>implicit</span> <span class='n'>num</span><span class='k'>:</span> <span class='kt'>Numeric</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>])</span><span class='k'>:</span><span class='kt'>B</span>
+</code></pre></div>
+<p>如果你调用List(1,2).sum() ，你不需要传入一个 num 参数；它是implicitly。但是如果你调用List(&#8220;whoop&#8221;).sum()，它会抱怨并没有num。</p>
+
+<p>方法可能会为没有奇怪的含有Numeric 类的类型请求一些特殊的“证据”。相反，你可以用这些类型关系运算符。</p>
+
+<p>A =:= B A 一定等于B</p>
+
+<p>A &lt;:&lt; B A 一定是B 的子类型</p>
+
+<p>A &lt;%&lt; B A 一定是对B 可见的</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class Container<span class='o'>[</span>A<span class='o'>](</span>value: A<span class='o'>)</span> <span class='o'>{</span> def addIt<span class='o'>(</span>implicit evidence: <span class='nv'>A</span> <span class='o'>=</span>:<span class='o'>=</span> Int<span class='o'>)</span> <span class='o'>=</span> 123 +value <span class='o'>}</span>
+defined class Container
+
+scala&gt; <span class='o'>(</span>new Container<span class='o'>(</span>123<span class='o'>))</span>.addIt
+res11: <span class='nv'>Int</span> <span class='o'>=</span> 246
+
+scala&gt; <span class='o'>(</span>new Container<span class='o'>(</span><span class='s2'>&quot;123&quot;</span><span class='o'>))</span>.addIt
+&lt;console&gt;:10: error: could not find implicit value <span class='k'>for </span>parameter evidence: <span class='o'>=</span>:<span class='o'>=[</span>java.lang.String.Int<span class='o'>]</span>
+</code></pre></div>
+<p>相似的。给我们上一个 implicit，我们可以放松可视性的约束：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class Container <span class='o'>[</span>A<span class='o'>]</span> <span class='o'>(</span>value: A<span class='o'>)</span> <span class='o'>{</span> def addIt<span class='o'>(</span>implicit evidence: A &lt;%&lt; Int<span class='o'>)</span> <span class='o'>=</span> 123 + value <span class='o'>}</span>
+defined class Container
+
+scala&gt; <span class='o'>(</span>new Container<span class='o'>(</span><span class='s2'>&quot;123&quot;</span><span class='o'>))</span>.addIt
+res15: <span class='nv'>Int</span> <span class='o'>=</span> 246
+</code></pre></div>
+<h3 id='views_'>通过views 生成程序</h3>
+
+<p>在Scala 标准类库里，views 主要用来通过集合量来执行生成函数。比如，min 函数（在 Seq<span /> 里面的），使用了这个技术：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>min</span><span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>](</span><span class='k'>implicit</span> <span class='n'>cmp</span><span class='k'>:</span> <span class='kt'>Ordering</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>]</span><span class='k'>:</span> <span class='kt'>A</span> <span class='o'>=</span> <span class='o'>{</span>
+    <span class='k'>if</span> <span class='o'>(</span><span class='n'>is</span> <span class='nc'>Empty</span><span class='o'>)</span>
+        <span class='k'>throw</span> <span class='k'>new</span> <span class='nc'>UnsupportedOperationException</span><span class='o'>(</span><span class='s'>&quot;empty.min&quot;</span><span class='o'>)</span>
+
+    <span class='n'>reduceLeft</span><span class='o'>((</span><span class='n'>x</span><span class='o'>,</span><span class='n'>y</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='k'>if</span><span class='o'>(</span><span class='n'>cmp</span><span class='o'>.</span><span class='n'>ltep</span><span class='o'>(</span><span class='n'>x</span><span class='o'>,</span><span class='n'>y</span><span class='o'>))</span> <span class='n'>x</span> <span class='k'>else</span> <span class='n'>y</span><span class='o'>)</span>
+<span class='o'>})</span>
+</code></pre></div>
+<p>这样做的好处主要是：</p>
+
+<ul>
+<li>集合量里面的项不需要执行Ordered，但是Ordered 仍然用来静态类型检查。 * 你可以定义你自己的排序而不需要任何额外的类库支持。</li>
+</ul>
+<div class='highlight'><pre><code class='bash'>scala&gt; list<span class='o'>(</span>1,2,3,4<span class='o'>)</span>.min
+res0: <span class='nv'>Int</span> <span class='o'>=</span> 1
+
+scala&gt; list<span class='o'>(</span>1,2,3,4<span class='o'>)</span>.min<span class='o'>(</span>new Ordering<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>{</span> def compare<span class='o'>(</span>a: Int, b: Int<span class='o'>)</span> <span class='o'>=</span> b compare a<span class='o'>})</span>
+res3: <span class='nv'>Int</span> <span class='o'>=</span> 4
+</code></pre></div>
+<p>作为旁注，在标准类库里面有views 来吧Ordered 转换成为Ordering（反之亦然）。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>LowPriorityOrderingImplicits</span><span class='o'>{</span>
+    <span class='k'>implicit</span> <span class='k'>def</span> <span class='n'>ordered</span><span class='o'>[</span><span class='kt'>A</span> <span class='k'>&lt;:</span> <span class='kt'>Ordered</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]]</span><span class='k'>:</span> <span class='kt'>Ordering</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Ordering</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]{</span>
+        <span class='k'>def</span> <span class='n'>compare</span><span class='o'>(</span><span class='n'>x</span><span class='k'>:</span> <span class='kt'>A</span><span class='o'>,</span><span class='n'>y</span><span class='k'>:</span> <span class='kt'>A</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>x</span><span class='o'>.</span><span class='n'>compare</span><span class='o'>(</span><span class='n'>y</span><span class='o'>)</span>
+    <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h3 id='context_bounds__implicitly'>Context bounds &amp; implicitly<span /></h3>
+
+<p>Scala 2.8 引入了一个传递&amp;接受implicit 参数的多线程的简写。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def foo<span class='o'>[</span>A<span class='o'>](</span>implicit x: Ordered<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>{}</span>
+foo: <span class='o'>[</span>A<span class='o'>](</span>implicit x: Ordered<span class='o'>[</span>A<span class='o'>])</span>Unti
+
+scala&gt; def foo<span class='o'>[</span>A: Ordered<span class='o'>]</span> <span class='o'>{}</span>
+foo: <span class='o'>[</span>A<span class='o'>](</span>implicit evidence<span class='nv'>$1</span>: Ordered<span class='o'>[</span>A<span class='o'>])</span>Unit
+</code></pre></div>
+<p>Implicit 值可能通过 implicitly 访问</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; implicitly<span class='o'>[</span>Ordering<span class='o'>[</span>Int<span class='o'>]]</span>
+res37: Ordering<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> scala.math.Ordering<span class='nv'>$Int$@</span>3a9291cf
+</code></pre></div>
+<h2 id='__adhoc_'>更高等级的类型 &amp; ad-hoc 多态</h2>
+
+<p>Scala 可以通过“高级“类型来抽象。比如，假如你需要使用一些包含一些数据类型的类型。你可以定义一个Container 接口，它可能借助于一些容器类型，Option、List 等等。你想给在这些容器里的值定义一个接口却不固定它们的类型。</p>
+
+<p>这是function currying 的一个特例。比如，”一元类型“ 像List<span>A</span> 这样构造，这意味着我们要创建一个混合类型（就像uncurried 函数需要被提供一个被调用的参数列表）我们不得不满足一”级“类型变量，一个高级类型则需要更多。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; trait Container<span class='o'>[</span>M<span class='o'>[</span>_<span class='o'>]]</span> <span class='o'>{</span> def put<span class='o'>[</span>A<span class='o'>](</span>x: A<span class='o'>)</span>: M<span class='o'>[</span>A<span class='o'>]</span>;<span class='o'>(</span>m: M<span class='o'>[</span>A<span class='o'>])</span>: A <span class='o'>}</span>
+
+scala&gt; val <span class='nv'>container</span> <span class='o'>=</span> new Container<span class='o'>[</span>List<span class='o'>]</span> <span class='o'>{</span>def put<span class='o'>[</span>A<span class='o'>](</span>x: A<span class='o'>)</span> <span class='o'>=</span> List<span class='o'>(</span>x<span class='o'>)</span>: def get<span class='o'>[</span>A<span class='o'>]}</span> <span class='o'>=</span> m.head <span class='o'>}</span>
+container: java.lang.Object with Container<span class='o'>[</span>List<span class='o'>]</span> <span class='o'>=</span> <span class='nv'>$anon$7c8e3f75</span>
+
+scala&gt; container.put<span class='o'>(</span><span class='s2'>&quot;hey&quot;</span><span class='o'>)</span>
+res24: List<span class='o'>[</span>java.lang.String<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>hey<span class='o'>)</span>
+
+scala&gt; container.put<span class='o'>(</span>123<span class='o'>)</span>
+res25: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>123<span class='o'>)</span>
+</code></pre></div>
+<p>注意Container 是一个参数或类型（”容器类型“）里面的多态。</p>
+
+<p>如果我们使用含有implicits 的容器组合，我们获得了一个”ad-hoc“ 多态，通过容器写一般函数的能力。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; trait Container<span class='o'>[</span>M<span class='o'>[</span>_<span class='o'>]]</span> <span class='o'>{</span> def put<span class='o'>[</span>A<span class='o'>](</span>x: A<span class='o'>)</span>: M<span class='o'>[</span>A<span class='o'>]</span>: def get<span class='o'>[</span>A<span class='o'>](</span>m: M<span class='o'>[</span>A<span class='o'>])</span>: A <span class='o'>}</span>
+
+scala&gt; implicit val <span class='nv'>listContainer</span> <span class='o'>=</span> new Container<span class='o'>[</span>List<span class='o'>]</span> <span class='o'>{</span> def put<span class='o'>[</span>A<span class='o'>](</span>x: A<span class='o'>)</span> <span class='o'>=</span> List<span class='o'>(</span>x<span class='o'>)</span>: def get<span class='o'>[</span>A<span class='o'>](</span>m: List<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>=</span> m.head <span class='o'>}</span>
+
+scala&gt; implicit val <span class='nv'>optionContainer</span> <span class='o'>=</span> new Container<span class='o'>[</span>Some<span class='o'>]</span> <span class='o'>{</span> def put<span class='o'>[</span>A<span class='o'>](</span>x: A<span class='o'>)</span> <span class='o'>=</span> Some<span class='o'>(</span>x<span class='o'>)</span>: def get<span class='o'>[</span>A<span class='o'>](</span>m: Some<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>=</span> m.get <span class='o'>}</span>
+
+scala&gt; def tuleize<span class='o'>[</span>M<span class='o'>[</span>_<span class='o'>]]</span>:Container,A,B<span class='o'>](</span>fst: M<span class='o'>[</span>A<span class='o'>]</span>,snd: M<span class='o'>[</span>B<span class='o'>])</span> <span class='o'>=</span> <span class='o'>{</span>
+     | val <span class='nv'>c</span> <span class='o'>=</span> implicitly<span class='o'>[</span>Container<span class='o'>[</span>M<span class='o'>]]</span>
+     | c.put<span class='o'>(</span>c.get<span class='o'>(</span>fsc<span class='o'>)</span>,c.get<span class='o'>(</span>snd<span class='o'>))</span>
+     | <span class='o'>}</span>
+tupleize: <span class='o'>[</span>M<span class='o'>[</span>_<span class='o'>]</span>,A,B<span class='o'>](</span>fst: M<span class='o'>[</span>A<span class='o'>]</span>,snd: M<span class='o'>[</span>B<span class='o'>])(</span>implicit evidence<span class='nv'>$1</span>: Container<span class='o'>[</span>M<span class='o'>]</span>M<span class='o'>(</span>A, B<span class='o'>))</span>
+
+scala&gt; tupleize<span class='o'>(</span>Some<span class='o'>(</span>1<span class='o'>)</span>, Some<span class='o'>(</span>2<span class='o'>))</span>
+res33: Some<span class='o'>[(</span>Int, Int<span class='o'>)]</span> <span class='o'>=</span> Some<span class='o'>((</span>1,2<span class='o'>))</span>
+
+scala&gt; tupleize<span class='o'>(</span>List<span class='o'>(</span>1<span class='o'>)</span>, List<span class='o'>(</span>2<span class='o'>))</span>
+res34: List<span class='o'>[(</span>Int,Int<span class='o'>)]</span> <span class='o'>=</span> List<span class='o'>((</span>1,2<span class='o'>))</span>
+</code></pre></div>
+<h2 id='fbounded_'>F-bounded 多态</h2>
+
+<p>通常在一个（通用）接口里面访问一个混合子类是很有必要的。比如，想象你有一些同有的接口，但是可以和这个接口的特殊子类做比较。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Container</span> <span class='k'>extends</span> <span class='nc'>Ordered</span><span class='o'>[</span><span class='kt'>Container</span><span class='o'>]</span>
+</code></pre></div>
+<p>不管怎样，现在必须是比较的方法：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>compare</span><span class='o'>(</span><span class='n'>that</span><span class='k'>:</span> <span class='kt'>Container</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Int</span>
+</code></pre></div>
+<p>所以我们不能访问混合子类型，比如：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>MeContainer</span> <span class='k'>extends</span> <span class='nc'>Container</span><span class='o'>{</span>
+    <span class='k'>def</span> <span class='n'>compare</span><span class='o'>(</span><span class='n'>that</span><span class='k'>:</span> <span class='kt'>MyContainer</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Int</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>编译失败，由于我们为Container 指定了Ordered ，而不是特殊的子类。</p>
+
+<p>为了解决这点，我们使用了F-bounded 多态。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Container</span><span class='o'>[</span><span class='kt'>A</span> <span class='k'>&lt;:</span> <span class='kt'>Container</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span> <span class='kt'>extends</span> <span class='kt'>Ordered</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
+</code></pre></div>
+<p>好奇怪的类型。但是注意Ordered 是怎样作为A 的参数的，也就是它自己是Container<span>A</span>.</p>
+
+<p>所以，现在</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>MyContainer</span> <span class='k'>extends</span> <span class='nc'>Container</span><span class='o'>[</span><span class='kt'>MyContainer</span><span class='o'>]</span> <span class='o'>{</span>
+    <span class='k'>def</span> <span class='n'>compare</span><span class='o'>(</span><span class='n'>that</span><span class='k'>:</span> <span class='kt'>MyContainer</span><span class='o'>)</span> <span class='k'>=</span> <span class='mi'>0</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>它们现在被排序了：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; List<span class='o'>(</span>new MyContainer, new MyContainer, new MyContainer<span class='o'>)</span>
+res3: List<span class='o'>[</span>MyContainer<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>MyContainer@30f02a6d,MyContainer@67717334,MyContainer@49428ffa<span class='o'>)</span>
+
+scala&gt; List<span class='o'>(</span>new MyContainer, new MyContainer, new MyContainer<span class='o'>)</span>.min
+res4: <span class='nv'>MyContainer</span> <span class='o'>=</span> MyContainer@33dfeb30
+</code></pre></div>
+<p>给定它们都是Container<span /> 的子类型，我们可以定义其它的子类&amp;创建一个混合Container<span><em>]列表：</em></span></p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class YourContainer extends Container<span class='o'>[</span>YourContainer<span class='o'>]</span> <span class='o'>{</span> def compare<span class='o'>(</span>that: YourContainer<span class='o'>)</span> <span class='o'>=</span> 0<span class='o'>}</span>
+defined class YourContainer
+
+scala&gt; List<span class='o'>(</span>new MyContainer, new MyContainer, new MyContainer,new YourContainer<span class='o'>)</span>
+res2: List<span class='o'>[</span>Container<span class='o'>[</span>_ &gt;: YourContainer with MyContainer &lt;: Container<span class='o'>[</span>_ &gt;: YourContainer with MyContainer &lt;: ScalaObject<span class='o'>]]]</span> <span class='o'>=</span> List<span class='o'>(</span>MyContainer@3be5d207, MyContainer@6d3fe849, MyContainer@7eab48a7, YourContainer@1f2f0ce9<span class='o'>)</span>
+</code></pre></div>
+<p>注意结果类型是怎样通过YourContainer with MyContainer lower-bound。这是因为类型推断。有趣的是这个类型甚至没有任何意义，它仅仅是为统一的列表类型提供了一个逻辑最大的低下限。现在我们来试试Ordered 会怎样呢？</p>
+<div class='highlight'><pre><code class='scala'><span class='o'>(</span><span class='k'>new</span> <span class='nc'>MyContainer</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>MyContainer</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>MyContainer</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>YourContainer</span><span class='o'>).</span><span class='n'>min</span>
+<span class='o'>&lt;</span><span class='n'>console</span><span class='k'>&gt;:</span><span class='mi'>9</span> <span class='n'>error</span><span class='k'>:</span> <span class='kt'>could</span> <span class='kt'>not</span> <span class='kt'>find</span> <span class='kt'>implicit</span> <span class='kt'>value</span> <span class='kt'>for</span> <span class='kt'>parameter</span> <span class='kt'>cmp:</span>
+  <span class='nc'>Ordering</span><span class='o'>[</span><span class='kt'>Container</span><span class='o'>[</span><span class='k'>_</span> <span class='k'>&gt;:</span> <span class='kt'>YourContainer</span> <span class='kt'>with</span> <span class='kt'>MyContainer</span> <span class='k'>&lt;:</span> <span class='kt'>Container</span><span class='o'>[</span><span class='k'>_</span> <span class='k'>&gt;:</span> <span class='kt'>YourContainer</span> <span class='kt'>with</span> <span class='kt'>MyContainer</span> <span class='k'>&lt;:</span> <span class='kt'>ScalaObject</span><span class='o'>]]]</span>
+</code></pre></div>
+<p>注意 Ordered<span /> 存在于统一的类型里。太糟糕了。</p>
+
+<h2 id='structural_types'>Structural types</h2>
+
+<p>Scala 有对Structural types 的支持 &#8211; 类型需要被接口结构表达而不是混合类型。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def foo<span class='o'>(</span>x: <span class='o'>{</span> def get: Int <span class='o'>})</span> <span class='o'>=</span> 123 + x.get
+foo: <span class='o'>(</span>x: AnyRef<span class='o'>{</span>def get: Int<span class='o'>})</span>Int
+
+scala&gt; foo<span class='o'>(</span>new <span class='o'>{</span> def <span class='nv'>get</span> <span class='o'>=</span> 10 <span class='o'>})</span>
+res0: <span class='nv'>Int</span> <span class='o'>=</span> 133
+</code></pre></div>
+<p>这在很多情形里确实很好，但是却是用了反射执行，因此有一些性能损失（so be performance-aware）!</p>
+
+<h2 id='id82'>抽象类型成员</h2>
+
+<p>在接口里，你可以抽象类型成员。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; trait Foo <span class='o'>{</span> <span class='nb'>type </span>A: val x: A; def getX: <span class='nv'>A</span> <span class='o'>=</span> x <span class='o'>}</span>
+defined trait Foo
+
+scala&gt; <span class='o'>(</span>new Foo <span class='o'>{</span> <span class='nb'>type </span><span class='nv'>A</span> <span class='o'>=</span> Int; val <span class='nv'>x</span> <span class='o'>=</span> 123 <span class='o'>})</span>.getX
+res3: <span class='nv'>Int</span> <span class='o'>=</span> 123
+
+scala&gt; <span class='o'>(</span>new Foo <span class='o'>{</span> <span class='nb'>type </span><span class='nv'>A</span> <span class='o'>=</span> String: val <span class='nv'>x</span> <span class='o'>=</span> <span class='s2'>&quot;hey&quot;</span> <span class='o'>})</span>.getX
+res4: java.lang.String <span class='o'>=</span> hey
+</code></pre></div>
+<p>在处理依赖注射等时这通常是一个有用的把戏。</p>
+
+<p>你可以使用hash 操作符来指定一个抽象类型：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; trait Foo<span class='o'>[</span>M<span class='o'>[</span>_<span class='o'>]]</span> <span class='o'>{</span> <span class='nb'>type </span>t<span class='o'>[</span>A<span class='o'>]</span> <span class='o'>=</span> M<span class='o'>[</span>A<span class='o'>]</span> <span class='o'>}</span>
+defined trait Foo
+
+scala&gt; val x: Foo<span class='o'>[</span>List<span class='o'>]</span><span class='c'>#t[Int] = List(1)</span>
+x: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1<span class='o'>)</span>
+</code></pre></div>
+<h2 id='id83'>类型涂改&amp;体现</h2>
+
+<p>众所周知，由于类型涂改类型信息在编译时会丢失。Scala 的特性Manifest，允许我们可选的覆盖类型信息。Manifests 是提供的一个implicit 值，在编译需要时生成。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class MakeFoo<span class='o'>[</span>A<span class='o'>](</span>implicit manifest: Manifest<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>{</span>def make: <span class='nv'>A</span> <span class='o'>=</span> manifest.erasure.newInstance.asInstanceOf<span class='o'>[</span>A<span class='o'>]</span> <span class='o'>}</span>
+
+scala&gt; <span class='o'>(</span>new MakeFoo<span class='o'>[</span>String<span class='o'>])</span>.make
+res10: <span class='nv'>String</span> <span class='o'>=</span> <span class='s2'>&quot;&quot;</span>
+</code></pre></div>
+<h2 id='case_fingle'>Case 学习:Fingle</h2>
+
+<p>见:<a href='https://github.com/twitter/finagle'>此处</a></p>
+<div class='highlight'><pre><code class='scala'><span class='n'>it</span> <span class='nc'>Service</span><span class='o'>[</span><span class='kt'>-Req</span>, <span class='kt'>+Rep</span><span class='o'>]</span> <span class='k'>extends</span> <span class='o'>(</span><span class='nc'>Req</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>[</span><span class='kt'>Rep</span><span class='o'>])</span>
+
+<span class='k'>trait</span> <span class='nc'>Filter</span><span class='o'>[</span><span class='kt'>-ReqIn</span>, <span class='kt'>+RepOut</span>, <span class='kt'>+ReqOut</span>, <span class='kt'>-RepIn</span><span class='o'>]</span>
+  <span class='nc'>extends</span> <span class='o'>((</span><span class='nc'>ReqIn</span><span class='o'>,</span> <span class='nc'>Service</span><span class='o'>[</span><span class='kt'>ReqOut</span>, <span class='kt'>RepIn</span><span class='o'>])</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>[</span><span class='kt'>RepOut</span><span class='o'>])</span>
+<span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>andThen</span><span class='o'>[</span><span class='kt'>Req2</span>, <span class='kt'>Rep2</span><span class='o'>](</span><span class='n'>next</span><span class='k'>:</span> <span class='kt'>Filter</span><span class='o'>[</span><span class='kt'>ReqOut</span>, <span class='kt'>RepIn</span>, <span class='kt'>Req2</span>, <span class='kt'>Rep2</span><span class='o'>])</span> <span class='k'>=</span>
+    <span class='k'>new</span> <span class='nc'>Filter</span><span class='o'>[</span><span class='kt'>ReqIn</span>, <span class='kt'>RepOut</span>, <span class='kt'>Req2</span>, <span class='kt'>Rep2</span><span class='o'>]</span> <span class='o'>{</span>
+      <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='k'>:</span> <span class='kt'>ReqIn</span><span class='o'>,</span> <span class='n'>service</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>Req2</span>, <span class='kt'>Rep2</span><span class='o'>])</span> <span class='k'>=</span> <span class='o'>{</span>
+        <span class='nc'>Filter</span><span class='o'>.</span><span class='k'>this</span><span class='o'>.</span><span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>Service</span><span class='o'>[</span><span class='kt'>ReqOut</span>, <span class='kt'>RepIn</span><span class='o'>]</span> <span class='o'>{</span>
+          <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='k'>:</span> <span class='kt'>ReqOut</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>RepIn</span><span class='o'>]</span> <span class='k'>=</span> <span class='n'>next</span><span class='o'>(</span><span class='n'>request</span><span class='o'>,</span> <span class='n'>service</span><span class='o'>)</span>
+          <span class='k'>override</span> <span class='k'>def</span> <span class='n'>release</span><span class='o'>()</span> <span class='k'>=</span> <span class='n'>service</span><span class='o'>.</span><span class='n'>release</span><span class='o'>()</span>
+          <span class='k'>override</span> <span class='k'>def</span> <span class='n'>isAvailable</span> <span class='k'>=</span> <span class='n'>service</span><span class='o'>.</span><span class='n'>isAvailable</span>
+        <span class='o'>})</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+    
+  <span class='k'>def</span> <span class='n'>andThen</span><span class='o'>(</span><span class='n'>service</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>ReqOut</span>, <span class='kt'>RepIn</span><span class='o'>])</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Service</span><span class='o'>[</span><span class='kt'>ReqIn</span>, <span class='kt'>RepOut</span><span class='o'>]</span> <span class='o'>{</span>
+    <span class='k'>private</span><span class='o'>[</span><span class='kt'>this</span><span class='o'>]</span> <span class='k'>val</span> <span class='n'>refcounted</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>RefcountedService</span><span class='o'>(</span><span class='n'>service</span><span class='o'>)</span>
+
+    <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='k'>:</span> <span class='kt'>ReqIn</span><span class='o'>)</span> <span class='k'>=</span> <span class='nc'>Filter</span><span class='o'>.</span><span class='k'>this</span><span class='o'>.</span><span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='o'>,</span> <span class='n'>refcounted</span><span class='o'>)</span>
+    <span class='k'>override</span> <span class='k'>def</span> <span class='n'>release</span><span class='o'>()</span> <span class='k'>=</span> <span class='n'>refcounted</span><span class='o'>.</span><span class='n'>release</span><span class='o'>()</span>
+    <span class='k'>override</span> <span class='k'>def</span> <span class='n'>isAvailable</span> <span class='k'>=</span> <span class='n'>refcounted</span><span class='o'>.</span><span class='n'>isAvailable</span>
+  <span class='o'>}</span>    
+<span class='o'>}</span>
+</code></pre></div>
+<p>服务可能包含的认证请求过滤。</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>it</span> <span class='nc'>RequestWithCredentials</span> <span class='k'>extends</span> <span class='nc'>Request</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>credentials</span><span class='k'>:</span> <span class='kt'>Credentials</span>
+<span class='o'>}</span>
+
+<span class='k'>class</span> <span class='nc'>CredentialsFilter</span><span class='o'>(</span><span class='n'>credentialsParser</span><span class='k'>:</span> <span class='kt'>CredentialsParser</span><span class='o'>)</span>
+  <span class='k'>extends</span> <span class='nc'>Filter</span><span class='o'>[</span><span class='kt'>Request</span>, <span class='kt'>Response</span>, <span class='kt'>RequestWithCredentials</span>, <span class='kt'>Response</span><span class='o'>]</span>
+<span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='k'>:</span> <span class='kt'>Request</span><span class='o'>,</span> <span class='n'>service</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>RequestWithCredentials</span>, <span class='kt'>Response</span><span class='o'>])</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Response</span><span class='o'>]</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>requestWithCredentials</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>RequestWrapper</span> <span class='k'>with</span> <span class='nc'>RequestWithCredentials</span> <span class='o'>{</span>
+      <span class='k'>val</span> <span class='n'>underlying</span> <span class='k'>=</span> <span class='n'>request</span>
+      <span class='k'>val</span> <span class='n'>credentials</span> <span class='k'>=</span> <span class='n'>credentialsParser</span><span class='o'>(</span><span class='n'>request</span><span class='o'>)</span> <span class='n'>getOrElse</span> <span class='nc'>NullCredentials</span>
+    <span class='o'>}</span>
+
+    <span class='n'>service</span><span class='o'>(</span><span class='n'>requestWithCredentials</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>注意相关服务怎样需要一个认证请求，这里是静态确认。过滤器从此被认为是服务转换器。</p>
+
+<p>一些过滤器可以组合在一起：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>upFilter</span> <span class='k'>=</span>
+  <span class='n'>logTransaction</span>     <span class='n'>andThen</span>
+  <span class='n'>handleExceptions</span>   <span class='n'>andThen</span>
+  <span class='n'>extractCredentials</span> <span class='n'>andThen</span>
+  <span class='n'>homeUser</span>           <span class='n'>andThen</span>
+  <span class='n'>authenticate</span>       <span class='n'>andThen</span>
+  <span class='n'>route</span>
+</code></pre></div>
+<p>它们是类型安全的。</p>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>
