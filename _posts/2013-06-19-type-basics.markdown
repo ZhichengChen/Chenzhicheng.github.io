@@ -73,7 +73,7 @@ res6: Any = 2
 
 {% endhighlight %}
 
-所以我们的应用会进入到一系列的投掷中（asInstanceOf[]）我们也可能缺少类型安全（因为它们都是动态的）。
+所以我们的应用会进入到一系列的投掷中（asInstanceOf\[\]）我们也可能缺少类型安全（因为它们都是动态的）。
 
 多态解决了指定类型变量的问题。
 
@@ -96,7 +96,6 @@ res1: List[Int] = List(2, 3)
 def toList[A](a: A) = List(a)
 
 {% endhighlight %}
-
 你通常希望是这样的：
 
 {% highlight bash %}
@@ -164,7 +163,7 @@ x: Array[Int] = Array(1, 2, 3, 4)
 
 ##变化
 
-Scala 的类型系统不得不和多态来解释class 层级 。Class 层级允许子类型关系的表达式。当混合了OO  和多态时的一个中心的讨论问题是： 如果T' 是T 的一个子类，Cotainer[T'] 是Container[T] 的子类吗？变化调用允许你的表达式class 层级和部署类型的下列关系。
+Scala 的类型系统不得不和多态来解释class 层级 。Class 层级允许子类型关系的表达式。当混合了OO  和多态时的一个中心的讨论问题是： 如果T' 是T 的一个子类，Cotainer\[T'\] 是Container\[T\] 的子类吗？变化调用允许你的表达式class 层级和部署类型的下列关系。
 
 <table class="table table-bordered">
     <tr>
@@ -174,24 +173,25 @@ Scala 的类型系统不得不和多态来解释class 层级 。Class 层级允�
     </tr>
     <tr>
         <td>covariant</td>
-        <td>C[T'] 是C[T] 的子类</td>
-        <td>[+T]</td>
+        <td>C\[T'\] 是C\[T\] 的子类</td>
+        <td>\[+T\]</td>
     </tr>
     <tr>
         <td>contravariant</td>
-        <td>C[T] 是C[T'] 的子类</td>
-        <td>[-T]</td>
+        <td>C\[T\] 是C\[T'\] 的子类</td>
+        <td>\[-T\]</td>
     </tr>
     <tr>
         <td>invariant</td>
-        <td>C[T] 和C[T'] 没关系</td>
-        <td>[T]</td>
+        <td>C\[T\] 和C\[T'\] 没关系</td>
+        <td>\[T\]</td>
     </tr>
 </table>
 
 
 
 子类型的关系意味着：给定类型T，如果T' 是一个子类型，你能替代他吗？
+
 
 {% highlight bash %}
 
@@ -293,7 +293,7 @@ res5: Seq[java.lang.String] = List(cluck,call)
 
 {% endhighlight %}
 
-低等级的bounds 也被支持，它们和contravariance 和clever covariance迟早会有用。List[+T] 是covariant; 一个Birds 列表是一个Animals 列表。List 定义了一个操作::(elem T)返回一个含有elem 的新List。新Lift 有相同的原始类型。
+低等级的bounds 也被支持，它们和contravariance 和clever covariance迟早会有用。List\[+T\] 是covariant; 一个Birds 列表是一个Animals 列表。List 定义了一个操作::(elem T)返回一个含有elem 的新List。新Lift 有相同的原始类型。
 
 {% highlight bash %}
 
@@ -305,7 +305,7 @@ res53: List[Bird] = List(Chicken@56fbda05, Bird@7e1ec70e,Bird@169ea8d2)
 
 {% endhighlight %}
 
-List 还定义了::[B >: T](x: B)，它返回List[B]。注意B >: T。指定了类型B 是T的超类。这让当考虑一个Animal 到List[Bird] 时我们使用正确的东西：
+List 还定义了::\[B >: T\](x: B)，它返回List\[B\]。注意B >: T。指定了类型B 是T的超类。这让当考虑一个Animal 到List\[Bird\] 时我们使用正确的东西：
 
 {% highlight bash %}
 

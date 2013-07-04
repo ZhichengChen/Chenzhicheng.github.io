@@ -73,7 +73,7 @@ object ArithmeticSpec extends Specification {
       }
       "three numbers" in {
         1 + 1 + 1 mustEqual 3
-      }
+     
     }
   }
 }

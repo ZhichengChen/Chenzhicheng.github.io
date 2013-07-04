@@ -138,7 +138,7 @@ plusOne: <span class='nv'>AddOne</span> <span class='o'>=</span> &lt;function1&g
 scala&gt; plusOne<span class='o'>(</span>1<span class='o'>)</span>
 res0: <span class='nv'>Int</span> <span class='o'>=</span> 2
 </code></pre></div>
-<p>extends Function1<span>Int, Int</span> 的一个比较好的简写是extends(Int =&gt; Int)</p>
+<p>extends Function1[Int, Int] 的一个比较好的简写是extends(Int =&gt; Int)</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>AddOne</span> <span class='k'>extends</span> <span class='o'>(</span><span class='nc'>Int</span> <span class='k'>=&gt;</span> <span class='nc'>Int</span><span class='o'>){</span>
     <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>m</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='n'>m</span> <span class='o'>+</span> <span class='mi'>1</span>
 <span class='o'>}</span>
@@ -194,9 +194,9 @@ res0: <span class='nv'>Int</span> <span class='o'>=</span> 2
 
 <p>最后一个case 的_ 是一个通配符；它确保我们可以处理任何陈述。否则当你传入一个不匹配的数时会抛出一个运行时异常。我们以后会讨论它。</p>
 
-<p>也可以看看Effective Scala 的观点when to use pattern matchingrogramming-Pattern matching)以及pattern matching formattingatching)。A Tour of Scala 也有描述<a href='http://www.scala-lang.org/node/120'>Pattern Matching</a>。</p>
+<p>也可以看看Effective Scala 的观点<a href='http://twitter.github.com/effectivescala/#Functional+programming-Pattern+matching'>when to use pattern matching</a>以及<a href='http://twitter.github.com/effectivescala/#Formatting-Pattern+matching'>pattern matching formatting</a>。A Tour of Scala 也有描述<a href='http://www.scala-lang.org/node/120'>Pattern Matching</a>。</p>
 
-<h3 id='id19'>匹配类型</h3>
+<h3 id='id293'>匹配类型</h3>
 
 <p>你也可以用match 匹配处理不同类型的不同值。</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>bigger</span><span class='o'>(</span><span class='n'>o</span><span class='k'>:</span> <span class='kt'>Any</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Any</span> <span class='o'>=</span> <span class='o'>{</span>

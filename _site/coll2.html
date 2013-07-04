@@ -126,7 +126,7 @@ res4: scala.collection.immutable.Map<span class='o'>[</span>Char,Int<span class=
 
 <p>见<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/Map.html'>API 文档</a></p>
 
-<h2 id='id40'>方法</h2>
+<h2 id='id314'>方法</h2>
 
 <h3 id='traversable'>Traversable</h3>
 
@@ -136,29 +136,29 @@ res4: scala.collection.immutable.Map<span class='o'>[</span>Char,Int<span class=
 </code></pre></div>
 <p>这是函数组合的定义。</p>
 
-<p>def map BA) =&gt; B) : CC<span>B</span></p>
+<p><code>def map [B] (f: (A) =&gt; B) : CC[B]</code></p>
 
 <p>返回一个每个元素都被f 转化了的集合量。</p>
 
-<p>def foreachU&gt; U): Unit</p>
+<p><code>def foreach[U] (f:Elem =&gt; U): Unit</code></p>
 
 <p>对集合量里的每一个元素执行f。</p>
 
-<p>def find(p: (A) =&gt; Boolean) : Option<span>A</span></p>
+<p><code>def find(p: (A) =&gt; Boolean) : Option[A]</code></p>
 
 <p>返回匹配谓词函数的地一个元素</p>
 
-<p>def filter (p: (A) =&gt; Boolean) : Traversable<span>A</span></p>
+<p><code>def filter (p: (A) =&gt; Boolean) : Traversable[A]</code></p>
 
 <p>返回匹配谓词函数的所有的元素。</p>
 
 <p>Partitioning:</p>
 
-<p>def partition (p: (A) =&gt; Boolean) : (Traversable<span>A</span>, Traversable<span>A</span>)</p>
+<p><code>def partition (p: (A) =&gt; Boolean) : (Traversable[A], Traversable[A])</code></p>
 
 <p>根据为此函数把集合两分成两半</p>
 
-<p>def groupBy KA) =&gt; K) : Map<span>K, Traversable<span>A</span></span></p>
+<p><code>def groupBy [K] (f: (A) =&gt; K) : Map[K, Traversable[A]]</code></p>
 
 <p>Conversion:</p>
 
@@ -210,7 +210,7 @@ res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int
 <div class='highlight'><pre><code class='bash'>scala&gt; Map<span class='o'>((</span><span class='s2'>&quot;a&quot;</span>, 2<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;b&quot;</span>, 2<span class='o'>))</span>
 res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>a,2<span class='o'>)</span>, <span class='o'>(</span>b,2<span class='o'>))</span>
 </code></pre></div>
-<h6 id='id41'>题外话</h6>
+<h6 id='id315'>题外话</h6>
 
 <p>-&gt; 是什么意思？这不是明确的语法，这是一个返回元组的方法。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; <span class='s2'>&quot;a&quot;</span> -&gt; 2
@@ -226,7 +226,7 @@ res1: <span class='o'>(</span>java.lang.String, Int<span class='o'>)</span> <spa
 <div class='highlight'><pre><code class='bash'>scala&gt; Map.empty ++ List<span class='o'>((</span><span class='s2'>&quot;a&quot;</span>, 1<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;b&quot;</span>, 2<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;c&quot;</span>, 3<span class='o'>))</span>
 res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>a,1<span class='o'>)</span>, <span class='o'>(</span>b,2<span class='o'>)</span>, <span class='o'>(</span>c,3<span class='o'>))</span>
 </code></pre></div>
-<h3 id='id42'>通常使用的子类</h3>
+<h3 id='id316'>通常使用的子类</h3>
 
 <p><strong>HashSet 和 HashMap</strong> 快速寻找，这些集合的最普遍的使用方式。<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html'>HashSet API</a>,<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html'>HashMap API</a></p>
 
@@ -268,7 +268,7 @@ res2: Seq<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</
 <div class='highlight'><pre><code class='scala'><span class='n'>scala</span><span class='o'>&gt;</span> <span class='nc'>Set</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>)</span>
 <span class='n'>res31</span><span class='k'>:</span> <span class='kt'>scala.collection.immutable.Set</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Set</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>)</span>
 </code></pre></div>
-<h3 id='id43'>一些描述接口</h3>
+<h3 id='id317'>一些描述接口</h3>
 
 <p><strong>IndexedSeq</strong> 快速随机访问元素以及快速长度操作。<a href='http://www.scala-lang.org/api/current/scala/collection/IndexedSeq.html'>API doc</a></p>
 

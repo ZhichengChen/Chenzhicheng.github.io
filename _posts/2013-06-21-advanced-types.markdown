@@ -69,7 +69,7 @@ scala> (new Container[Float]).addIt(123.2F)
 
 ## 其它类型边界
 
-方法可以通过implicit 参数生效更多复杂的类型参数。比如，Lift 支持对数字进行sum 当然其它类型不可以。唉，Scala 的数字类型并没有调用超类共享，因此我们不能仅仅说T<: Number。相反，为了让它可以工作，Scala 的数学类库[为合适的类型定义了一个ieimplicit 的Numberic[T]](http://www.azavea.com/blogs/labs/2011/06/scalas-numeric-type-class-pt-1/) 。然后List 使用它来定义：
+方法可以通过implicit 参数生效更多复杂的类型参数。比如，Lift 支持对数字进行sum 当然其它类型不可以。唉，Scala 的数字类型并没有调用超类共享，因此我们不能仅仅说T<: Number。相反，为了让它可以工作，Scala 的数学类库[为合适的类型定义了一个ieimplicit 的Numberic\[T\]](http://www.azavea.com/blogs/labs/2011/06/scalas-numeric-type-class-pt-1/) 。然后List 使用它来定义：
 
 {% highlight scala %}
 
@@ -114,7 +114,7 @@ res15: Int = 246
 
 ###通过views 生成程序
 
-在Scala 标准类库里，views 主要用来通过集合量来执行生成函数。比如，min 函数（在 Seq[] 里面的），使用了这个技术：
+在Scala 标准类库里，views 主要用来通过集合量来执行生成函数。比如，min 函数（在 Seq\[\] 里面的），使用了这个技术：
 
 {% highlight scala %}
 
@@ -154,7 +154,7 @@ trait LowPriorityOrderingImplicits{
 
 {% endhighlight %}
 
-###Context bounds & implicitly[]
+###Context bounds & implicitly\[\]
 
 Scala 2.8 引入了一个传递&接受implicit 参数的多线程的简写。
 
@@ -181,7 +181,7 @@ res37: Ordering[Int] = scala.math.Ordering$Int$@3a9291cf
 
 Scala 可以通过“高级“类型来抽象。比如，假如你需要使用一些包含一些数据类型的类型。你可以定义一个Container 接口，它可能借助于一些容器类型，Option、List 等等。你想给在这些容器里的值定义一个接口却不固定它们的类型。
 
-这是function currying 的一个特例。比如，”一元类型“ 像List[A] 这样构造，这意味着我们要创建一个混合类型（就像uncurried 函数需要被提供一个被调用的参数列表）我们不得不满足一”级“类型变量，一个高级类型则需要更多。
+这是function currying 的一个特例。比如，”一元类型“ 像List\[A\] 这样构造，这意味着我们要创建一个混合类型（就像uncurried 函数需要被提供一个被调用的参数列表）我们不得不满足一”级“类型变量，一个高级类型则需要更多。
 
 {% highlight bash %}
 
@@ -262,7 +262,7 @@ trait Container[A <: Container[A] extends Ordered[A]
 
 {% endhighlight %}
 
-好奇怪的类型。但是注意Ordered 是怎样作为A 的参数的，也就是它自己是Container[A].
+好奇怪的类型。但是注意Ordered 是怎样作为A 的参数的，也就是它自己是Container\[A\].
 
 所以，现在
 
@@ -286,7 +286,7 @@ res4: MyContainer = MyContainer@33dfeb30
 
 {% endhighlight %}
 
-给定它们都是Container[] 的子类型，我们可以定义其它的子类&创建一个混合Container[_]列表：
+给定它们都是Container\[\] 的子类型，我们可以定义其它的子类&创建一个混合Container\[\_\]列表：
 
 {% highlight bash %}
 
@@ -294,7 +294,7 @@ scala> class YourContainer extends Container[YourContainer] { def compare(that: 
 defined class YourContainer
 
 scala> List(new MyContainer, new MyContainer, new MyContainer,new YourContainer)
-res2: List[Container[_ >: YourContainer with MyContainer <: Container[_ >: YourContainer with MyContainer <: ScalaObject]]] = List(MyContainer@3be5d207, MyContainer@6d3fe849, MyContainer@7eab48a7, YourContainer@1f2f0ce9)
+res2: List[Container[\_ >: YourContainer with MyContainer <: Container[\_ >: YourContainer with MyContainer <: ScalaObject]]] = List(MyContainer@3be5d207, MyContainer@6d3fe849, MyContainer@7eab48a7, YourContainer@1f2f0ce9)
 
 {% endhighlight %}
 
@@ -308,7 +308,7 @@ res2: List[Container[_ >: YourContainer with MyContainer <: Container[_ >: YourC
 
 {% endhighlight %}
 
-注意 Ordered[] 存在于统一的类型里。太糟糕了。
+注意 Ordered\[\] 存在于统一的类型里。太糟糕了。
 
 ##Structural  types
 
@@ -444,3 +444,4 @@ val upFilter =
 {% endhighlight %}
 
 它们是类型安全的。
+

@@ -130,29 +130,29 @@ def tail : Traversable[A]
 
 这是函数组合的定义。
 
-def map [B] (f: (A) => B) : CC[B]
+``def map [B] (f: (A) => B) : CC[B]``
 
 返回一个每个元素都被f 转化了的集合量。
 
-def foreach[U] (f:Elem => U): Unit
+``def foreach[U] (f:Elem => U): Unit``
 
 对集合量里的每一个元素执行f。
 
-def find(p: (A) => Boolean) : Option[A]
+``def find(p: (A) => Boolean) : Option[A]``
 
 返回匹配谓词函数的地一个元素
 
-def filter (p: (A) => Boolean) : Traversable[A]
+``def filter (p: (A) => Boolean) : Traversable[A]``
 
 返回匹配谓词函数的所有的元素。
 
 Partitioning:
 
-def partition (p: (A) => Boolean) : (Traversable[A], Traversable[A])
+``def partition (p: (A) => Boolean) : (Traversable[A], Traversable[A])``
 
 根据为此函数把集合两分成两半
 
-def groupBy [K] (f: (A) => K) : Map[K, Traversable[A]]
+``def groupBy [K] (f: (A) => K) : Map[K, Traversable[A]]``
 
 Conversion:
 

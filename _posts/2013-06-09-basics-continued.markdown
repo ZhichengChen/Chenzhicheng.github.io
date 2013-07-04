@@ -138,7 +138,7 @@ res0: Int = 2
 
 {% endhighlight %}
 
-extends Function1[Int, Int] 的一个比较好的简写是extends(Int => Int)
+extends Function1\[Int, Int\] 的一个比较好的简写是extends(Int => Int)
 
 {% highlight scala %}
 
@@ -230,7 +230,7 @@ times match {
 
 最后一个case 的_ 是一个通配符；它确保我们可以处理任何陈述。否则当你传入一个不匹配的数时会抛出一个运行时异常。我们以后会讨论它。
 
-也可以看看Effective Scala 的观点[when to use pattern matching](http://twitter.github.com/effectivescala/#Functional programming-Pattern matching)以及[pattern matching formatting](http://twitter.github.com/effectivescala/#Formatting-Pattern matching)。A Tour of Scala 也有描述[Pattern Matching](http://www.scala-lang.org/node/120)。
+也可以看看Effective Scala 的观点[when to use pattern matching](http://twitter.github.com/effectivescala/#Functional+programming-Pattern+matching)以及[pattern matching formatting](http://twitter.github.com/effectivescala/#Formatting-Pattern+matching)。A Tour of Scala 也有描述[Pattern Matching](http://www.scala-lang.org/node/120)。
 
 ###匹配类型
 

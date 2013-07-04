@@ -91,9 +91,9 @@ scala&gt; <span class='o'>(</span>new Container<span class='o'>[</span>Float<spa
        <span class='o'>(</span>new Container<span class='o'>[</span>Float<span class='o'>])</span>.addIt<span class='o'>(</span>123.2<span class='o'>)</span>
         ^
 </code></pre></div>
-<h2 id='id26'>其它类型边界</h2>
+<h2 id='id300'>其它类型边界</h2>
 
-<p>方法可以通过implicit 参数生效更多复杂的类型参数。比如，Lift 支持对数字进行sum 当然其它类型不可以。唉，Scala 的数字类型并没有调用超类共享，因此我们不能仅仅说T&lt;: Number。相反，为了让它可以工作，Scala 的数学类库<a href='http://www.azavea.com/blogs/labs/2011/06/scalas-numeric-type-class-pt-1/'>为合适的类型定义了一个ieimplicit 的Numberic<span>T</span></a> 。然后List 使用它来定义：</p>
+<p>方法可以通过implicit 参数生效更多复杂的类型参数。比如，Lift 支持对数字进行sum 当然其它类型不可以。唉，Scala 的数字类型并没有调用超类共享，因此我们不能仅仅说T&lt;: Number。相反，为了让它可以工作，Scala 的数学类库<a href='http://www.azavea.com/blogs/labs/2011/06/scalas-numeric-type-class-pt-1/'>为合适的类型定义了一个ieimplicit 的Numberic[T]</a> 。然后List 使用它来定义：</p>
 <div class='highlight'><pre><code class='scala'><span class='n'>sum</span><span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>](</span><span class='k'>implicit</span> <span class='n'>num</span><span class='k'>:</span> <span class='kt'>Numeric</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>])</span><span class='k'>:</span><span class='kt'>B</span>
 </code></pre></div>
 <p>如果你调用List(1,2).sum() ，你不需要传入一个 num 参数；它是implicitly。但是如果你调用List(&#8220;whoop&#8221;).sum()，它会抱怨并没有num。</p>
@@ -123,7 +123,7 @@ res15: <span class='nv'>Int</span> <span class='o'>=</span> 246
 </code></pre></div>
 <h3 id='views_'>通过views 生成程序</h3>
 
-<p>在Scala 标准类库里，views 主要用来通过集合量来执行生成函数。比如，min 函数（在 Seq<span /> 里面的），使用了这个技术：</p>
+<p>在Scala 标准类库里，views 主要用来通过集合量来执行生成函数。比如，min 函数（在 Seq[] 里面的），使用了这个技术：</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>min</span><span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>](</span><span class='k'>implicit</span> <span class='n'>cmp</span><span class='k'>:</span> <span class='kt'>Ordering</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>]</span><span class='k'>:</span> <span class='kt'>A</span> <span class='o'>=</span> <span class='o'>{</span>
     <span class='k'>if</span> <span class='o'>(</span><span class='n'>is</span> <span class='nc'>Empty</span><span class='o'>)</span>
         <span class='k'>throw</span> <span class='k'>new</span> <span class='nc'>UnsupportedOperationException</span><span class='o'>(</span><span class='s'>&quot;empty.min&quot;</span><span class='o'>)</span>
@@ -149,7 +149,7 @@ res3: <span class='nv'>Int</span> <span class='o'>=</span> 4
     <span class='o'>}</span>
 <span class='o'>}</span>
 </code></pre></div>
-<h3 id='context_bounds__implicitly'>Context bounds &amp; implicitly<span /></h3>
+<h3 id='context_bounds__implicitly'>Context bounds &amp; implicitly[]</h3>
 
 <p>Scala 2.8 引入了一个传递&amp;接受implicit 参数的多线程的简写。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; def foo<span class='o'>[</span>A<span class='o'>](</span>implicit x: Ordered<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>{}</span>
@@ -166,7 +166,7 @@ res37: Ordering<span class='o'>[</span>Int<span class='o'>]</span> <span class='
 
 <p>Scala 可以通过“高级“类型来抽象。比如，假如你需要使用一些包含一些数据类型的类型。你可以定义一个Container 接口，它可能借助于一些容器类型，Option、List 等等。你想给在这些容器里的值定义一个接口却不固定它们的类型。</p>
 
-<p>这是function currying 的一个特例。比如，”一元类型“ 像List<span>A</span> 这样构造，这意味着我们要创建一个混合类型（就像uncurried 函数需要被提供一个被调用的参数列表）我们不得不满足一”级“类型变量，一个高级类型则需要更多。</p>
+<p>这是function currying 的一个特例。比如，”一元类型“ 像List[A] 这样构造，这意味着我们要创建一个混合类型（就像uncurried 函数需要被提供一个被调用的参数列表）我们不得不满足一”级“类型变量，一个高级类型则需要更多。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; trait Container<span class='o'>[</span>M<span class='o'>[</span>_<span class='o'>]]</span> <span class='o'>{</span> def put<span class='o'>[</span>A<span class='o'>](</span>x: A<span class='o'>)</span>: M<span class='o'>[</span>A<span class='o'>]</span>;<span class='o'>(</span>m: M<span class='o'>[</span>A<span class='o'>])</span>: A <span class='o'>}</span>
 
 scala&gt; val <span class='nv'>container</span> <span class='o'>=</span> new Container<span class='o'>[</span>List<span class='o'>]</span> <span class='o'>{</span>def put<span class='o'>[</span>A<span class='o'>](</span>x: A<span class='o'>)</span> <span class='o'>=</span> List<span class='o'>(</span>x<span class='o'>)</span>: def get<span class='o'>[</span>A<span class='o'>]}</span> <span class='o'>=</span> m.head <span class='o'>}</span>
@@ -217,7 +217,7 @@ res34: List<span class='o'>[(</span>Int,Int<span class='o'>)]</span> <span class
 <p>为了解决这点，我们使用了F-bounded 多态。</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Container</span><span class='o'>[</span><span class='kt'>A</span> <span class='k'>&lt;:</span> <span class='kt'>Container</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span> <span class='kt'>extends</span> <span class='kt'>Ordered</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>
 </code></pre></div>
-<p>好奇怪的类型。但是注意Ordered 是怎样作为A 的参数的，也就是它自己是Container<span>A</span>.</p>
+<p>好奇怪的类型。但是注意Ordered 是怎样作为A 的参数的，也就是它自己是Container[A].</p>
 
 <p>所以，现在</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>MyContainer</span> <span class='k'>extends</span> <span class='nc'>Container</span><span class='o'>[</span><span class='kt'>MyContainer</span><span class='o'>]</span> <span class='o'>{</span>
@@ -231,19 +231,19 @@ res3: List<span class='o'>[</span>MyContainer<span class='o'>]</span> <span clas
 scala&gt; List<span class='o'>(</span>new MyContainer, new MyContainer, new MyContainer<span class='o'>)</span>.min
 res4: <span class='nv'>MyContainer</span> <span class='o'>=</span> MyContainer@33dfeb30
 </code></pre></div>
-<p>给定它们都是Container<span /> 的子类型，我们可以定义其它的子类&amp;创建一个混合Container<span><em>]列表：</em></span></p>
+<p>给定它们都是Container[] 的子类型，我们可以定义其它的子类&amp;创建一个混合Container[_]列表：</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; class YourContainer extends Container<span class='o'>[</span>YourContainer<span class='o'>]</span> <span class='o'>{</span> def compare<span class='o'>(</span>that: YourContainer<span class='o'>)</span> <span class='o'>=</span> 0<span class='o'>}</span>
 defined class YourContainer
 
 scala&gt; List<span class='o'>(</span>new MyContainer, new MyContainer, new MyContainer,new YourContainer<span class='o'>)</span>
-res2: List<span class='o'>[</span>Container<span class='o'>[</span>_ &gt;: YourContainer with MyContainer &lt;: Container<span class='o'>[</span>_ &gt;: YourContainer with MyContainer &lt;: ScalaObject<span class='o'>]]]</span> <span class='o'>=</span> List<span class='o'>(</span>MyContainer@3be5d207, MyContainer@6d3fe849, MyContainer@7eab48a7, YourContainer@1f2f0ce9<span class='o'>)</span>
+res2: List<span class='o'>[</span>Container<span class='o'>[</span><span class='se'>\_</span> &gt;: YourContainer with MyContainer &lt;: Container<span class='o'>[</span><span class='se'>\_</span> &gt;: YourContainer with MyContainer &lt;: ScalaObject<span class='o'>]]]</span> <span class='o'>=</span> List<span class='o'>(</span>MyContainer@3be5d207, MyContainer@6d3fe849, MyContainer@7eab48a7, YourContainer@1f2f0ce9<span class='o'>)</span>
 </code></pre></div>
 <p>注意结果类型是怎样通过YourContainer with MyContainer lower-bound。这是因为类型推断。有趣的是这个类型甚至没有任何意义，它仅仅是为统一的列表类型提供了一个逻辑最大的低下限。现在我们来试试Ordered 会怎样呢？</p>
 <div class='highlight'><pre><code class='scala'><span class='o'>(</span><span class='k'>new</span> <span class='nc'>MyContainer</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>MyContainer</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>MyContainer</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>YourContainer</span><span class='o'>).</span><span class='n'>min</span>
 <span class='o'>&lt;</span><span class='n'>console</span><span class='k'>&gt;:</span><span class='mi'>9</span> <span class='n'>error</span><span class='k'>:</span> <span class='kt'>could</span> <span class='kt'>not</span> <span class='kt'>find</span> <span class='kt'>implicit</span> <span class='kt'>value</span> <span class='kt'>for</span> <span class='kt'>parameter</span> <span class='kt'>cmp:</span>
   <span class='nc'>Ordering</span><span class='o'>[</span><span class='kt'>Container</span><span class='o'>[</span><span class='k'>_</span> <span class='k'>&gt;:</span> <span class='kt'>YourContainer</span> <span class='kt'>with</span> <span class='kt'>MyContainer</span> <span class='k'>&lt;:</span> <span class='kt'>Container</span><span class='o'>[</span><span class='k'>_</span> <span class='k'>&gt;:</span> <span class='kt'>YourContainer</span> <span class='kt'>with</span> <span class='kt'>MyContainer</span> <span class='k'>&lt;:</span> <span class='kt'>ScalaObject</span><span class='o'>]]]</span>
 </code></pre></div>
-<p>注意 Ordered<span /> 存在于统一的类型里。太糟糕了。</p>
+<p>注意 Ordered[] 存在于统一的类型里。太糟糕了。</p>
 
 <h2 id='structural_types'>Structural types</h2>
 
@@ -256,7 +256,7 @@ res0: <span class='nv'>Int</span> <span class='o'>=</span> 133
 </code></pre></div>
 <p>这在很多情形里确实很好，但是却是用了反射执行，因此有一些性能损失（so be performance-aware）!</p>
 
-<h2 id='id27'>抽象类型成员</h2>
+<h2 id='id301'>抽象类型成员</h2>
 
 <p>在接口里，你可以抽象类型成员。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; trait Foo <span class='o'>{</span> <span class='nb'>type </span>A: val x: A; def getX: <span class='nv'>A</span> <span class='o'>=</span> x <span class='o'>}</span>
@@ -277,7 +277,7 @@ defined trait Foo
 scala&gt; val x: Foo<span class='o'>[</span>List<span class='o'>]</span><span class='c'>#t[Int] = List(1)</span>
 x: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1<span class='o'>)</span>
 </code></pre></div>
-<h2 id='id28'>类型涂改&amp;体现</h2>
+<h2 id='id302'>类型涂改&amp;体现</h2>
 
 <p>众所周知，由于类型涂改类型信息在编译时会丢失。Scala 的特性Manifest，允许我们可选的覆盖类型信息。Manifests 是提供的一个implicit 值，在编译需要时生成。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; class MakeFoo<span class='o'>[</span>A<span class='o'>](</span>implicit manifest: Manifest<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>{</span>def make: <span class='nv'>A</span> <span class='o'>=</span> manifest.erasure.newInstance.asInstanceOf<span class='o'>[</span>A<span class='o'>]</span> <span class='o'>}</span>

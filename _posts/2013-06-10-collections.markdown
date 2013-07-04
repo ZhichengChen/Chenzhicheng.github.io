@@ -98,7 +98,7 @@ res0: (Int, Int) = (1,2)
 
 {% endhighlight %}
 
-在Effective Scala 里面有更多关于[描述绑定](http://twitter.github.com/effectivescala/#Functional programming-Destructuring bindings)的（解包元组）内容。
+在Effective Scala 里面有更多关于[描述绑定](http://twitter.github.com/effectivescala/#Functional+programming+Destructuring+bindings)的（解包元组）内容。
 
 ###  映射 Maps
 
@@ -142,7 +142,7 @@ trait Option[T] { def isDefined: Boolean def get: T def getOrElse(t: T): T }
 
 {% endhighlight %}
 
-选项自己是通用类，它可以包含两个子类：Some[T] 或者 None。
+选项自己是通用类，它可以包含两个子类：Some\[T\] 或者 None。
 
 让我们来看看使用选项的例子：
 
@@ -197,11 +197,15 @@ res0: List[Int] = List(2, 4, 6, 8)
 
 或者部分传入求值函数。
 
+{% highlight bash %}
+
 scala> def timesTwo(i: Int):Int = i * 2
 timesTwo: (i: Int)Int
 
 scala> numbers.map(timesTwo _)
 res0: List[Int] = List(2, 4, 6, 8)
+
+{% endhighlight %}
 
 ###  foreach
 
@@ -309,7 +313,7 @@ res0: Int = 55
 
 {% endhighlight %}
 
-0 是开始值，（记住numbers 是一个List[Int]）,m 是一个累加器。
+0 是开始值，（记住numbers 是一个List\[Int\]）,m 是一个累加器。
 
 这样看起来更形象：
 
@@ -408,7 +412,7 @@ res0: List[Int] = List(2, 4, 6, 8, 10, 12, 14, 16, 18, 20)
 
 {% endhighlight %}
 
-为什么是List[Int] 呢？Scala 还没有聪明到明白你想要一个空的Ints 的 list然后在来累积它。
+为什么是List\[Int\] 呢？Scala 还没有聪明到明白你想要一个空的Ints 的 list然后在来累积它。
 
 所有的函数式选择器都是用Maps 来做例子。Map 可以被当成是list 的搭档，所以你写的函数在一组键值对上起作用。
 

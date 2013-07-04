@@ -125,7 +125,7 @@ res1: <span class='nv'>Int</span> <span class='o'>=</span> 80
 <div class='highlight'><pre><code class='bash'>scala&gt; 1 -&gt; 2
 res0: <span class='o'>(</span>Int, Int<span class='o'>)</span> <span class='o'>=</span> <span class='o'>(</span>1,2<span class='o'>)</span>
 </code></pre></div>
-<p>在Effective Scala 里面有更多关于描述绑定rogramming-Destructuring bindings)的（解包元组）内容。</p>
+<p>在Effective Scala 里面有更多关于<a href='http://twitter.github.com/effectivescala/#Functional+programming+Destructuring+bindings'>描述绑定</a>的（解包元组）内容。</p>
 
 <h3 id='_maps'>映射 Maps</h3>
 
@@ -148,7 +148,7 @@ res0: <span class='o'>(</span>Int, Int<span class='o'>)</span> <span class='o'>=
 <p>选项的最基本的接口看起来这样：</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Option</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>]</span> <span class='o'>{</span> <span class='k'>def</span> <span class='n'>isDefined</span><span class='k'>:</span> <span class='kt'>Boolean</span> <span class='kt'>def</span> <span class='kt'>get:</span> <span class='kt'>T</span> <span class='kt'>def</span> <span class='kt'>getOrElse</span><span class='o'>(</span><span class='kt'>t:</span> <span class='kt'>T</span><span class='o'>)</span><span class='kt'>:</span> <span class='kt'>T</span> <span class='o'>}</span>
 </code></pre></div>
-<p>选项自己是通用类，它可以包含两个子类：Some<span>T</span> 或者 None。</p>
+<p>选项自己是通用类，它可以包含两个子类：Some[T] 或者 None。</p>
 
 <p>让我们来看看使用选项的例子：</p>
 
@@ -191,11 +191,12 @@ res1: Option<span class='o'>[</span>java.lang.String<span class='o'>]</span> <sp
 res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 4, 6, 8<span class='o'>)</span>
 </code></pre></div>
 <p>或者部分传入求值函数。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def timesTwo<span class='o'>(</span>i: Int<span class='o'>)</span>:Int <span class='o'>=</span> i * 2
+timesTwo: <span class='o'>(</span>i: Int<span class='o'>)</span>Int
 
-<p>scala&gt; def timesTwo(i: Int):Int = i * 2 timesTwo: (i: Int)Int</p>
-
-<p>scala&gt; numbers.map(timesTwo <em>) res0: List<span>Int</span> = List(2, 4, 6, 8)</em></p>
-
+scala&gt; numbers.map<span class='o'>(</span>timesTwo _<span class='o'>)</span>
+res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 4, 6, 8<span class='o'>)</span>
+</code></pre></div>
 <h3 id='foreach'>foreach</h3>
 
 <p>foreach 和map 类似，不过它不返回值，foreach 仅适用于它的副作用。</p>
@@ -251,7 +252,7 @@ res0: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=<
 <div class='highlight'><pre><code class='bash'>scala&gt; numbers.foldLeft<span class='o'>(</span>0<span class='o'>)((</span>m: Int,n: Int<span class='o'>)</span> <span class='o'>=</span>&gt; m + n<span class='o'>)</span>
 res0: <span class='nv'>Int</span> <span class='o'>=</span> 55
 </code></pre></div>
-<p>0 是开始值，（记住numbers 是一个List<span>Int</span>）,m 是一个累加器。</p>
+<p>0 是开始值，（记住numbers 是一个List[Int]）,m 是一个累加器。</p>
 
 <p>这样看起来更形象：</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; numbers.foldLeft<span class='o'>(</span>0<span class='o'>)</span> <span class='o'>{</span> <span class='o'>(</span>m: Int, n: Int<span class='o'>)</span> <span class='o'>=</span>&gt; println<span class='o'>(</span><span class='s2'>&quot;m: &quot;</span>+ m + <span class='s2'>&quot; n: &quot;</span> +n<span class='o'>)</span>; m + n <span class='o'>}</span>
@@ -320,7 +321,7 @@ res1: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=<
 <span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>ourMap</span><span class='o'>(</span><span class='n'>numbers</span><span class='o'>,</span> <span class='n'>timesTwo</span><span class='o'>(</span><span class='k'>_</span><span class='o'>))</span>
 <span class='n'>res0</span><span class='k'>:</span> <span class='kt'>List</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>List</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>,</span> <span class='mi'>4</span><span class='o'>,</span> <span class='mi'>6</span><span class='o'>,</span> <span class='mi'>8</span><span class='o'>,</span> <span class='mi'>10</span><span class='o'>,</span> <span class='mi'>12</span><span class='o'>,</span> <span class='mi'>14</span><span class='o'>,</span> <span class='mi'>16</span><span class='o'>,</span> <span class='mi'>18</span><span class='o'>,</span> <span class='mi'>20</span><span class='o'>)</span>
 </code></pre></div>
-<p>为什么是List<span>Int</span> 呢？Scala 还没有聪明到明白你想要一个空的Ints 的 list然后在来累积它。</p>
+<p>为什么是List[Int] 呢？Scala 还没有聪明到明白你想要一个空的Ints 的 list然后在来累积它。</p>
 
 <p>所有的函数式选择器都是用Maps 来做例子。Map 可以被当成是list 的搭档，所以你写的函数在一组键值对上起作用。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>extensions</span> <span class='o'>=</span> Map<span class='o'>(</span><span class='s2'>&quot;steve&quot;</span> -&gt; 100, <span class='s2'>&quot;job&quot;</span> -&gt; 201<span class='o'>)</span>
