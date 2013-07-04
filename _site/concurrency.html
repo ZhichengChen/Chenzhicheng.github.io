@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Scala 里面的并发</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">Scala 里面的并发</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "specs.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="java.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>课程包括</p>
+
+<ul>
+<li>Runnable/Callable</li>
+
+<li>线程 Threads</li>
+
+<li>Executors/ExecutorService</li>
+
+<li>Futures</li>
+
+<li>线程安全问题 Thread Safety Problem</li>
+
+<li>例子：搜索引擎 Example：Search Engine</li>
+
+<li>解决方案 Solutions</li>
+</ul>
+
+<h2 id='runnablecallabel'>Runnable/Callabel</h2>
+
+<p>Runnable 有一个不返回值的方法。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Runnable</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>run</span><span class='o'>()</span><span class='k'>:</span> <span class='kt'>Unit</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>Callable 和Runnable 很像，有一点区别是它返回一个值。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Callable</span><span class='o'>[</span><span class='kt'>V</span><span class='o'>]</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>call</span><span class='o'>()</span><span class='k'>:</span> <span class='kt'>V</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='_threads'>线程 Threads</h2>
+
+<p>Scala 的并发构建在Java 并发模型的基础上。</p>
+
+<p>在Sun 的JVM 上面，通过一个IO-heavy workload，我们可以在一个机器上运行上万个线程。</p>
+
+<p>一个线程接受一个Runnable。你可以调用线程上的start 方法来运行Runnable。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>hello</span> <span class='o'>=</span> new Thread<span class='o'>(</span>new Runnable <span class='o'>{</span>
+  def run<span class='o'>()</span> <span class='o'>{</span>
+    println<span class='o'>(</span><span class='s2'>&quot;hello world&quot;</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>})</span>
+hello: java.lang.Thread <span class='o'>=</span> Thread<span class='o'>[</span>Thread-3,5,main<span class='o'>]</span>
+
+scala&gt; hello.start
+hello world
+</code></pre></div>
+<p>当你看到一个实现了Runnable 的类时，你就知道了某人将要在某个地方运行一个线程了。</p>
+
+<h3 id='_something_singlethreaded'>单线程 Something single-threaded</h3>
+
+<p>这里有一个能运行却有问题的代码片段。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>java.net.</span><span class='o'>{</span><span class='nc'>Socket</span><span class='o'>,</span> <span class='nc'>ServerSocket</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>java.util.concurrent.</span><span class='o'>{</span><span class='nc'>Executors</span><span class='o'>,</span> <span class='nc'>ExecutorService</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>java.util.Date</span>
+
+<span class='k'>class</span> <span class='nc'>NetworkService</span><span class='o'>(</span><span class='n'>port</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>,</span> <span class='n'>poolSize</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>Runnable</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>serverSocket</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>ServerSocket</span><span class='o'>(</span><span class='n'>port</span><span class='o'>)</span>
+
+  <span class='k'>def</span> <span class='n'>run</span><span class='o'>()</span> <span class='o'>{</span>
+    <span class='k'>while</span> <span class='o'>(</span><span class='kc'>true</span><span class='o'>)</span> <span class='o'>{</span>
+      <span class='c1'>// This will block until a connection comes in.</span>
+      <span class='k'>val</span> <span class='n'>socket</span> <span class='k'>=</span> <span class='n'>serverSocket</span><span class='o'>.</span><span class='n'>accept</span><span class='o'>()</span>
+      <span class='o'>(</span><span class='k'>new</span> <span class='nc'>Handler</span><span class='o'>(</span><span class='n'>socket</span><span class='o'>)).</span><span class='n'>run</span><span class='o'>()</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='k'>class</span> <span class='nc'>Handler</span><span class='o'>(</span><span class='n'>socket</span><span class='k'>:</span> <span class='kt'>Socket</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>Runnable</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>message</span> <span class='k'>=</span> <span class='o'>(</span><span class='nc'>Thread</span><span class='o'>.</span><span class='n'>currentThread</span><span class='o'>.</span><span class='n'>getName</span><span class='o'>()</span> <span class='o'>+</span> <span class='s'>&quot;\n&quot;</span><span class='o'>).</span><span class='n'>getBytes</span>
+
+  <span class='k'>def</span> <span class='n'>run</span><span class='o'>()</span> <span class='o'>{</span>
+    <span class='n'>socket</span><span class='o'>.</span><span class='n'>getOutputStream</span><span class='o'>.</span><span class='n'>write</span><span class='o'>(</span><span class='n'>message</span><span class='o'>)</span>
+    <span class='n'>socket</span><span class='o'>.</span><span class='n'>getOutputStream</span><span class='o'>.</span><span class='n'>close</span><span class='o'>()</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='o'>(</span><span class='k'>new</span> <span class='nc'>NetworkService</span><span class='o'>(</span><span class='mi'>2020</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>)).</span><span class='n'>run</span>
+</code></pre></div>
+<p>每一个请求都会返回一个含有当前线程名字的响应，它通常是main。</p>
+
+<p>含有main 代码的缺陷是一次只能有一个请求被响应。</p>
+
+<p>你可以把所有的请求放在一个线程里。简单的修改如下把</p>
+<div class='highlight'><pre><code class='scala'><span class='o'>(</span><span class='k'>new</span> <span class='nc'>Handler</span><span class='o'>(</span><span class='n'>socket</span><span class='o'>)).</span><span class='n'>run</span><span class='o'>()</span>
+</code></pre></div>
+<p>改成</p>
+<div class='highlight'><pre><code class='scala'><span class='o'>(</span><span class='k'>new</span> <span class='nc'>Thread</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>Handler</span><span class='o'>(</span><span class='n'>socket</span><span class='o'>))).</span><span class='n'>start</span><span class='o'>()</span>
+</code></pre></div>
+<p>可是，如果你想要重用线程或者是要使用线程其它的方法该怎么办呢？</p>
+
+<h2 id='executors'>Executors</h2>
+
+<p>随着Java 5 的发布，注定需要一个更抽象的线程接口。</p>
+
+<p>你可以在Executors object 上面使用静态方法获得一个ExecutorService。这些方法允许你用大量的方法如线程池来配置一个ExecutorService。</p>
+
+<p>这是我们用老的代码写的允许线程请求的网络服务。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>java.net.</span><span class='o'>{</span><span class='nc'>Socket</span><span class='o'>,</span> <span class='nc'>ServerSocket</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>java.util.concurrent.</span><span class='o'>{</span><span class='nc'>Executors</span><span class='o'>,</span> <span class='nc'>ExecutorService</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>java.util.Date</span>
+
+<span class='k'>class</span> <span class='nc'>NetworkService</span><span class='o'>(</span><span class='n'>port</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>,</span> <span class='n'>poolSize</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>Runnable</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>serverSocket</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>ServerSocket</span><span class='o'>(</span><span class='n'>port</span><span class='o'>)</span>
+  <span class='k'>val</span> <span class='n'>pool</span><span class='k'>:</span> <span class='kt'>ExecutorService</span> <span class='o'>=</span> <span class='nc'>Executors</span><span class='o'>.</span><span class='n'>newFixedThreadPool</span><span class='o'>(</span><span class='n'>poolSize</span><span class='o'>)</span>
+
+  <span class='k'>def</span> <span class='n'>run</span><span class='o'>()</span> <span class='o'>{</span>
+    <span class='k'>try</span> <span class='o'>{</span>
+      <span class='k'>while</span> <span class='o'>(</span><span class='kc'>true</span><span class='o'>)</span> <span class='o'>{</span>
+        <span class='c1'>// This will block until a connection comes in.</span>
+        <span class='k'>val</span> <span class='n'>socket</span> <span class='k'>=</span> <span class='n'>serverSocket</span><span class='o'>.</span><span class='n'>accept</span><span class='o'>()</span>
+        <span class='n'>pool</span><span class='o'>.</span><span class='n'>execute</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>Handler</span><span class='o'>(</span><span class='n'>socket</span><span class='o'>))</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span> <span class='k'>finally</span> <span class='o'>{</span>
+      <span class='n'>pool</span><span class='o'>.</span><span class='n'>shutdown</span><span class='o'>()</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='k'>class</span> <span class='nc'>Handler</span><span class='o'>(</span><span class='n'>socket</span><span class='k'>:</span> <span class='kt'>Socket</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>Runnable</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>message</span> <span class='k'>=</span> <span class='o'>(</span><span class='nc'>Thread</span><span class='o'>.</span><span class='n'>currentThread</span><span class='o'>.</span><span class='n'>getName</span><span class='o'>()</span> <span class='o'>+</span> <span class='s'>&quot;\n&quot;</span><span class='o'>).</span><span class='n'>getBytes</span>
+
+  <span class='k'>def</span> <span class='n'>run</span><span class='o'>()</span> <span class='o'>{</span>
+    <span class='n'>socket</span><span class='o'>.</span><span class='n'>getOutputStream</span><span class='o'>.</span><span class='n'>write</span><span class='o'>(</span><span class='n'>message</span><span class='o'>)</span>
+    <span class='n'>socket</span><span class='o'>.</span><span class='n'>getOutputStream</span><span class='o'>.</span><span class='n'>close</span><span class='o'>()</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='o'>(</span><span class='k'>new</span> <span class='nc'>NetworkService</span><span class='o'>(</span><span class='mi'>2020</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>)).</span><span class='n'>run</span>
+</code></pre></div>
+<p>这是一个用来显示内部线程复用的一个重复连接。</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>nc localhost 2020
+pool-1-thread-1
+
+<span class='nv'>$ </span>nc localhost 2020
+pool-1-thread-2
+
+<span class='nv'>$ </span>nc localhost 2020
+pool-1-thread-1
+
+<span class='nv'>$ </span>nc localhost 2020
+pool-1-thread-2
+</code></pre></div>
+<h2 id='futures'>Futures</h2>
+
+<p>Future 代表一个异步计算，你可以在你需要结果的时候把你的计算包裹在Future里，然后简单在上面的调用get() 方法，Executor 会返回一个Future。如果你使用Finagle RPC 系统，你使用Future 实例来保存一个并没有需要访问的结果。</p>
+
+<p>一个FutureTask 是一个Runnable ，它被设计成被一个Executor 运行。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>future</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>FutureTask</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>](</span><span class='k'>new</span> <span class='nc'>Callable</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]()</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>call</span><span class='o'>()</span><span class='k'>:</span> <span class='kt'>String</span> <span class='o'>=</span> <span class='o'>{</span>
+    <span class='n'>searcher</span><span class='o'>.</span><span class='n'>search</span><span class='o'>(</span><span class='n'>target</span><span class='o'>);</span>
+<span class='o'>}})</span>
+<span class='n'>executor</span><span class='o'>.</span><span class='n'>execute</span><span class='o'>(</span><span class='n'>future</span><span class='o'>)</span>
+</code></pre></div>
+<p>现在我需要一个结果以便在完成之前阻止它。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>blockingResult</span> <span class='k'>=</span> <span class='n'>future</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+</code></pre></div>
+<p>见<a href='/finagle.html'>Scala School 的Finagle</a> 页上有大量的使用Future 的例子，包括一些来组合它们的方式。Effective Scala 里面也有关于<a href='http://twitter.github.com/effectivescala/#Twitter%27s%20standard%20libraries-Futures'>Futures</a> 的描述。</p>
+
+<h2 id='id151'>线程安全问题</h2>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>Person</span><span class='o'>(</span><span class='k'>var</span> <span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>set</span><span class='o'>(</span><span class='n'>changedName</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+    <span class='n'>name</span> <span class='k'>=</span> <span class='n'>changedName</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这个程序在多线程的环境下是不安全的。如果两个线程同时引用相同的Person 实例并且调用set，你不会知道它们都调用完之后会是什么样的名字。</p>
+
+<p>在Java 的内存模型里，每个处理器都允许在L1 或者L2 缓存里面建立值的缓存，因此两个运行在不同处理器里面的线程可以都有它们的数据试图。</p>
+
+<p>让我们来讨论一下强制把线程保持在一致的数据视图的工具。</p>
+
+<h3 id='id152'>线程池</h3>
+
+<h4 id='id153'>同步</h4>
+
+<p>Mutexes 提供语义所有权。当你进入到一个mutex 时，你就拥有了它。在JVM 里面使用mutex 的最普遍的方法就是通过一些东西里面的同步。在这里，我们在我们的Person 同步。</p>
+
+<p>在JVM里面，你可以同步任何非空的实例。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>Person</span><span class='o'>(</span><span class='k'>var</span> <span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>set</span><span class='o'>(</span><span class='n'>changedName</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+    <span class='k'>this</span><span class='o'>.</span><span class='n'>synchronized</span> <span class='o'>{</span>
+      <span class='n'>name</span> <span class='k'>=</span> <span class='n'>changedName</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h4 id='vloatile'>vloatile</h4>
+
+<p>随着Java 5对内存模型的改变，volatile 和 同步除了volatile，null被允许外基本上相同。同步允许更细粒度的锁，volatile 在每次访问时同步。</p>
+
+<p><div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>Person</span><span class='o'>(</span><span class='nd'>@volatile</span> <span class='k'>var</span> <span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>set</span><span class='o'>(</span><span class='n'>changedName</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+    <span class='n'>name</span> <span class='k'>=</span> <span class='n'>changedName</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div></p>
+
+<h3 id='atomicreference'>AtomicReference</h3>
+
+<p>还是在Java 5,增加了一个低级同步原语的整个raft。其中的一个就是AtomicReference 类。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>java.util.concurrent.atomic.AtomicReference</span>
+
+<span class='k'>class</span> <span class='nc'>Person</span><span class='o'>(</span><span class='k'>val</span> <span class='n'>name</span><span class='k'>:</span> <span class='kt'>AtomicReference</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>])</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>set</span><span class='o'>(</span><span class='n'>changedName</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+    <span class='n'>name</span><span class='o'>.</span><span class='n'>set</span><span class='o'>(</span><span class='n'>changedName</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h4 id='id154'>这花费什么事情吗？</h4>
+
+<p>当你不得不通过方法dispatch 来访问值时，@AtomicReference 是这两个选择里面代价最大的。</p>
+
+<p>volatile 和 同步是构建在Java 内建监视器顶部的。如果没有冲突的话监视器的消耗是非常小的。同时同步允许你更细粒度的控制你的同步，这样的话冲突会比较少，所以同步倾向于更昂贵的选择。</p>
+
+<p>当你进入到同步点时，访问volatile 引用，或者不同的AtomicReferences，Java 强制处理器刷新缓存，然后提供一个一致的数据视图。</p>
+
+<p>如果我这里有错误请纠正我。这是一个复杂的东西，我确定一定会有大量的研讨班在讨论这个问题。</p>
+
+<h3 id='java_5_'>从Java 5 带过来的其它的好东西</h3>
+
+<p>随着我对AtomicReference 的关注，Java5 伴随着它带来了更多伟大工具。</p>
+
+<h4 id='countdownlatch'>CountDownLatch</h4>
+
+<p>CountDownLatch 是一个多线程之间通讯的简单机制。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>doneSignal</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>CountDownLatch</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>)</span>
+<span class='n'>doAsyncWork</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+<span class='n'>doAsyncWork</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>)</span>
+
+<span class='n'>doneSignal</span><span class='o'>.</span><span class='n'>await</span><span class='o'>()</span>
+<span class='n'>println</span><span class='o'>(</span><span class='s'>&quot;both workers finished!&quot;</span><span class='o'>)</span>
+</code></pre></div>
+<p>除这些外，用它来做单元测试真是太棒了。让我们谈论一下你在做的一些同步的工作然后你想要确保函数被完成了。简单的用countDown 函数 锁上，然后用在测试时用 await。</p>
+
+<h4 id='atomicintegerlong'>AtomicInteger/Long</h4>
+
+<p>由于增加的Int 和Long 是一个如此普遍的任务，AtomicInteger 和AtomicLong 被增加了。</p>
+
+<h4 id='atomicboolean'>AtomicBoolean</h4>
+
+<p>我可能不必解释这个是干嘛的了。</p>
+
+<h4 id='readwritelocks'>ReadWriteLocks</h4>
+
+<p>ReadWriteLock 让你接受一个reader 以及写保护锁，reader 锁当写保护锁打开的时候才锁定。</p>
+
+<h2 id='id155'>让我们来构建一个不安全的搜索引擎</h2>
+
+<p>这是一个简单的不是线程安全的倒排索引。我们的倒排索引映射给定用户的部分名字。</p>
+
+<p>这是我们用幼稚的方式假设我们只有一个线程访问。</p>
+
+<p>注意可选的默认构造器this() 使用mutable.HashMap。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>scala.collection.mutable</span>
+
+<span class='k'>case</span> <span class='k'>class</span> <span class='nc'>User</span><span class='o'>(</span><span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>id</span><span class='k'>:</span> <span class='kt'>Int</span><span class='o'>)</span>
+
+<span class='k'>class</span> <span class='nc'>InvertedIndex</span><span class='o'>(</span><span class='k'>val</span> <span class='n'>userMap</span><span class='k'>:</span> <span class='kt'>mutable.Map</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>User</span><span class='o'>])</span> <span class='o'>{</span>
+
+  <span class='k'>def</span> <span class='k'>this</span><span class='o'>()</span> <span class='k'>=</span> <span class='k'>this</span><span class='o'>(</span><span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>User</span><span class='o'>])</span>
+
+  <span class='k'>def</span> <span class='n'>tokenizeName</span><span class='o'>(</span><span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>name</span><span class='o'>.</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot; &quot;</span><span class='o'>).</span><span class='n'>map</span><span class='o'>(</span><span class='k'>_</span><span class='o'>.</span><span class='n'>toLowerCase</span><span class='o'>)</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>add</span><span class='o'>(</span><span class='n'>term</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>user</span><span class='k'>:</span> <span class='kt'>User</span><span class='o'>)</span> <span class='o'>{</span>
+    <span class='n'>userMap</span> <span class='o'>+=</span> <span class='n'>term</span> <span class='o'>-&gt;</span> <span class='n'>user</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>add</span><span class='o'>(</span><span class='n'>user</span><span class='k'>:</span> <span class='kt'>User</span><span class='o'>)</span> <span class='o'>{</span>
+    <span class='n'>tokenizeName</span><span class='o'>(</span><span class='n'>user</span><span class='o'>.</span><span class='n'>name</span><span class='o'>).</span><span class='n'>foreach</span> <span class='o'>{</span> <span class='n'>term</span> <span class='k'>=&gt;</span>
+      <span class='n'>add</span><span class='o'>(</span><span class='n'>term</span><span class='o'>,</span> <span class='n'>user</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>目前我没有处理怎样把用户踢出我们的索引。我们稍后会处理的。</p>
+
+<h2 id='id156'>让我们把它变得更安全</h2>
+
+<p>在我们上面的倒序索引里，userMap 不保证是安全的。多个客户端可能尝试在同一时刻添加项目同时有相同的可见的我们在第一个Person 例子里面看到的错误。</p>
+
+<p>由于userMap 不是线程安全的，我们怎样确保在同一时刻只有一个线程改变它呢？</p>
+
+<p>你可以考虑在添加的时候锁住userMap。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>add</span><span class='o'>(</span><span class='n'>user</span><span class='k'>:</span> <span class='kt'>User</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='n'>userMap</span><span class='o'>.</span><span class='n'>synchronized</span> <span class='o'>{</span>
+    <span class='n'>tokenizeName</span><span class='o'>(</span><span class='n'>user</span><span class='o'>.</span><span class='n'>name</span><span class='o'>).</span><span class='n'>foreach</span> <span class='o'>{</span> <span class='n'>term</span> <span class='k'>=&gt;</span>
+      <span class='n'>add</span><span class='o'>(</span><span class='n'>term</span><span class='o'>,</span> <span class='n'>user</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这也太特么的粗糙了。经常尝试着尽可能在mutex 外面做更昂贵的工作。记住我说过的，如果没有冲突尽量保持锁更轻便。如果你在锁里面做更少的工作，那么冲突就会更少。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>add</span><span class='o'>(</span><span class='n'>user</span><span class='k'>:</span> <span class='kt'>User</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='c1'>// tokenizeName was measured to be the most expensive operation.</span>
+  <span class='k'>val</span> <span class='n'>tokens</span> <span class='k'>=</span> <span class='n'>tokenizeName</span><span class='o'>(</span><span class='n'>user</span><span class='o'>.</span><span class='n'>name</span><span class='o'>)</span>
+
+  <span class='n'>tokens</span><span class='o'>.</span><span class='n'>foreach</span> <span class='o'>{</span> <span class='n'>term</span> <span class='k'>=&gt;</span>
+    <span class='n'>userMap</span><span class='o'>.</span><span class='n'>synchronized</span> <span class='o'>{</span>
+      <span class='n'>add</span><span class='o'>(</span><span class='n'>term</span><span class='o'>,</span> <span class='n'>user</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='synchronizedmap'>SynchronizedMap</h2>
+
+<p>我们可以使用SynchronizedMap 接口混合synchronizatio 和mutable HashMap。</p>
+
+<p>我们通过给用户一个容易的方式构建同步索引扩展了我们存在的倒序索引。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>scala.collection.mutable.SynchronizedMap</span>
+
+<span class='k'>class</span> <span class='nc'>SynchronizedInvertedIndex</span><span class='o'>(</span><span class='n'>userMap</span><span class='k'>:</span> <span class='kt'>mutable.Map</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>User</span><span class='o'>])</span> <span class='k'>extends</span> <span class='nc'>InvertedIndex</span><span class='o'>(</span><span class='n'>userMap</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='k'>this</span><span class='o'>()</span> <span class='k'>=</span> <span class='k'>this</span><span class='o'>(</span><span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>User</span><span class='o'>]</span> <span class='k'>with</span> <span class='nc'>SynchronizedMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>User</span><span class='o'>])</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>如果你看到实现，你会意识到这是简单的在每个方法上的同步，因此它是安全的，它可能没有你希望的行为。</p>
+
+<h2 id='java_concurrenthashmap'>Java ConcurrentHashMap</h2>
+
+<p>Java 带来了一个不错的线程安全的ConcurrentHaspMap。非常感谢，我们可以使用JavaConverters 来给我们一个良好的Scala 语义。</p>
+
+<p>实际上，我们可以无缝的集成我们新的，线程安全的倒序索引作为我们之前的不安全版本的一个扩展。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>java.util.concurrent.ConcurrentHashMap</span>
+<span class='k'>import</span> <span class='nn'>scala.collection.JavaConverters._</span>
+
+<span class='k'>class</span> <span class='nc'>ConcurrentInvertedIndex</span><span class='o'>(</span><span class='n'>userMap</span><span class='k'>:</span> <span class='kt'>collection.mutable.ConcurrentMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>User</span><span class='o'>])</span>
+    <span class='k'>extends</span> <span class='nc'>InvertedIndex</span><span class='o'>(</span><span class='n'>userMap</span><span class='o'>)</span> <span class='o'>{</span>
+
+  <span class='k'>def</span> <span class='k'>this</span><span class='o'>()</span> <span class='k'>=</span> <span class='k'>this</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>ConcurrentHashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>User</span><span class='o'>]</span> <span class='n'>asScala</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='id157'>让我们来载入我们的倒序索引</h2>
+
+<h3 id='id158'>幼稚的方法</h3>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>UserMaker</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>makeUser</span><span class='o'>(</span><span class='n'>line</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>line</span><span class='o'>.</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot;,&quot;</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+    <span class='k'>case</span> <span class='nc'>Array</span><span class='o'>(</span><span class='n'>name</span><span class='o'>,</span> <span class='n'>userid</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='nc'>User</span><span class='o'>(</span><span class='n'>name</span><span class='o'>,</span> <span class='n'>userid</span><span class='o'>.</span><span class='n'>trim</span><span class='o'>().</span><span class='n'>toInt</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='k'>class</span> <span class='nc'>FileRecordProducer</span><span class='o'>(</span><span class='n'>path</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>UserMaker</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>run</span><span class='o'>()</span> <span class='o'>{</span>
+    <span class='nc'>Source</span><span class='o'>.</span><span class='n'>fromFile</span><span class='o'>(</span><span class='n'>path</span><span class='o'>,</span> <span class='s'>&quot;utf-8&quot;</span><span class='o'>).</span><span class='n'>getLines</span><span class='o'>.</span><span class='n'>foreach</span> <span class='o'>{</span> <span class='n'>line</span> <span class='k'>=&gt;</span>
+      <span class='n'>index</span><span class='o'>.</span><span class='n'>add</span><span class='o'>(</span><span class='n'>makeUser</span><span class='o'>(</span><span class='n'>line</span><span class='o'>))</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>我们文件的每一行，我们可以在我们的倒序索引上调用makeUser 然后掉用add 。如果我们使用一个并发的倒序索引，我们可以调用并行上的add，由于makeUser 没有副作用，所以它一直是线程安全的。</p>
+
+<p>我们不能读取并行上的我文件但是我们可以构建User 然后把它添加到并行（parallel）上。</p>
+
+<h3 id='id159'>一个解决方案：生产者和消费者</h3>
+
+<p>一个同步计算普遍的模式是把生产者和消费者分开，它们之间仅仅通过Queue 通讯。让我们看看搜索引擎索引是怎么工作的。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>java.util.concurrent.</span><span class='o'>{</span><span class='nc'>BlockingQueue</span><span class='o'>,</span> <span class='nc'>LinkedBlockingQueue</span><span class='o'>}</span>
+
+<span class='c1'>// Concrete producer</span>
+<span class='k'>class</span> <span class='nc'>Producer</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>](</span><span class='n'>path</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>queue</span><span class='k'>:</span> <span class='kt'>BlockingQueue</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>])</span> <span class='k'>extends</span> <span class='nc'>Runnable</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>run</span><span class='o'>()</span> <span class='o'>{</span>
+    <span class='nc'>Source</span><span class='o'>.</span><span class='n'>fromFile</span><span class='o'>(</span><span class='n'>path</span><span class='o'>,</span> <span class='s'>&quot;utf-8&quot;</span><span class='o'>).</span><span class='n'>getLines</span><span class='o'>.</span><span class='n'>foreach</span> <span class='o'>{</span> <span class='n'>line</span> <span class='k'>=&gt;</span>
+      <span class='n'>queue</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='n'>line</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='c1'>// Abstract consumer</span>
+<span class='k'>abstract</span> <span class='k'>class</span> <span class='nc'>Consumer</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>](</span><span class='n'>queue</span><span class='k'>:</span> <span class='kt'>BlockingQueue</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>])</span> <span class='k'>extends</span> <span class='nc'>Runnable</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>run</span><span class='o'>()</span> <span class='o'>{</span>
+    <span class='k'>while</span> <span class='o'>(</span><span class='kc'>true</span><span class='o'>)</span> <span class='o'>{</span>
+      <span class='k'>val</span> <span class='n'>item</span> <span class='k'>=</span> <span class='n'>queue</span><span class='o'>.</span><span class='n'>take</span><span class='o'>()</span>
+      <span class='n'>consume</span><span class='o'>(</span><span class='n'>item</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>consume</span><span class='o'>(</span><span class='n'>x</span><span class='k'>:</span> <span class='kt'>T</span><span class='o'>)</span>
+<span class='o'>}</span>
+
+<span class='k'>val</span> <span class='n'>queue</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>LinkedBlockingQueue</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]()</span>
+
+<span class='c1'>// One thread for the producer</span>
+<span class='k'>val</span> <span class='n'>producer</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Producer</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>](</span><span class='s'>&quot;users.txt&quot;</span><span class='o'>,</span> <span class='n'>q</span><span class='o'>)</span>
+<span class='k'>new</span> <span class='nc'>Thread</span><span class='o'>(</span><span class='n'>producer</span><span class='o'>).</span><span class='n'>start</span><span class='o'>()</span>
+
+<span class='k'>trait</span> <span class='nc'>UserMaker</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>makeUser</span><span class='o'>(</span><span class='n'>line</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>line</span><span class='o'>.</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot;,&quot;</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+    <span class='k'>case</span> <span class='nc'>Array</span><span class='o'>(</span><span class='n'>name</span><span class='o'>,</span> <span class='n'>userid</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='nc'>User</span><span class='o'>(</span><span class='n'>name</span><span class='o'>,</span> <span class='n'>userid</span><span class='o'>.</span><span class='n'>trim</span><span class='o'>().</span><span class='n'>toInt</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='k'>class</span> <span class='nc'>IndexerConsumer</span><span class='o'>(</span><span class='n'>index</span><span class='k'>:</span> <span class='kt'>InvertedIndex</span><span class='o'>,</span> <span class='n'>queue</span><span class='k'>:</span> <span class='kt'>BlockingQueue</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>])</span> <span class='k'>extends</span> <span class='nc'>Consumer</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>](</span><span class='n'>queue</span><span class='o'>)</span> <span class='k'>with</span> <span class='nc'>UserMaker</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>consume</span><span class='o'>(</span><span class='n'>t</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>index</span><span class='o'>.</span><span class='n'>add</span><span class='o'>(</span><span class='n'>makeUser</span><span class='o'>(</span><span class='n'>t</span><span class='o'>))</span>
+<span class='o'>}</span>
+
+<span class='c1'>// Let&#39;s pretend we have 8 cores on this machine.</span>
+<span class='k'>val</span> <span class='n'>cores</span> <span class='k'>=</span> <span class='mi'>8</span>
+<span class='k'>val</span> <span class='n'>pool</span> <span class='k'>=</span> <span class='nc'>Executors</span><span class='o'>.</span><span class='n'>newFixedThreadPool</span><span class='o'>(</span><span class='n'>cores</span><span class='o'>)</span>
+
+<span class='c1'>// Submit one consumer per core.</span>
+<span class='k'>for</span> <span class='o'>(</span><span class='n'>i</span> <span class='k'>&lt;-</span> <span class='n'>i</span> <span class='n'>to</span> <span class='n'>cores</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='n'>pool</span><span class='o'>.</span><span class='n'>submit</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>IndexerConsumer</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>](</span><span class='n'>index</span><span class='o'>,</span> <span class='n'>q</span><span class='o'>))</span>
+<span class='o'>}</span>
+</code></pre></div>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>

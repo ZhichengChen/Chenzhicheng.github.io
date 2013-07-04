@@ -54,7 +54,7 @@
 <li>类型 types</li>
 </ul>
 
-<h2 id='id275'>关于课程</h2>
+<h2 id='id107'>关于课程</h2>
 
 <p>开始的几周涵盖了基本语句和概念，然后我们会从一些练习开始。</p>
 
@@ -120,7 +120,7 @@
 
 <p>Scala 不是一个更好的Java。你应当用一个新的思维来学习它 - 你应该学习在这个课程之外的更多东西。</p>
 
-<h3 id='id276'>从解释器开始</h3>
+<h3 id='id108'>从解释器开始</h3>
 
 <p>从sbt 控制台开始。</p>
 <div class='highlight'><pre><code class='bash'> <span class='nv'>$ </span>sbt console
@@ -133,7 +133,7 @@
  
  scala&gt; 
 </code></pre></div>
-<h2 id='id277'>表达式</h2>
+<h2 id='id109'>表达式</h2>
 <div class='highlight'><pre><code class='bash'>scala&gt; 1 + 1
 res0: <span class='nv'>Int</span> <span class='o'>=</span> 2
 
@@ -143,13 +143,13 @@ res0:Int <span class='o'>=</span> 2
 
 <p>(几乎)Scala 里面所有的东西都是一个表达式。</p>
 
-<h2 id='id278'>值</h2>
+<h2 id='id110'>值</h2>
 
 <p>你也可以为表达式结果指定一个名字。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>two</span> <span class='o'>=</span> 1+1
 two: <span class='nv'>Int</span> <span class='o'>=</span> 2
 </code></pre></div>
-<h3 id='id279'>变量</h3>
+<h3 id='id111'>变量</h3>
 
 <p>如果你想改变绑定的值，你可以使用var 来代替val。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; var <span class='nv'>name</span> <span class='o'>=</span> <span class='s2'>&quot;steve&quot;</span>
@@ -158,7 +158,7 @@ name:java.lang.String <span class='o'>=</span> steve
 scala&gt; <span class='nv'>name</span> <span class='o'>=</span> <span class='s2'>&quot;marius&quot;</span>
 name: java.lang.String <span class='o'>=</span> marius
 </code></pre></div>
-<h2 id='id280'>函数</h2>
+<h2 id='id112'>函数</h2>
 
 <p>你可以用def 创建一个函数。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; def addOne<span class='o'>(</span>m:Int<span class='o'>)</span>:Int <span class='o'>=</span> m + 1
@@ -178,7 +178,7 @@ res2: <span class='nv'>Int</span> <span class='o'>=</span> 3
 scala&gt; three
 res3: <span class='nv'>Int</span> <span class='o'>=</span> 3
 </code></pre></div>
-<h3 id='id281'>匿名函数</h3>
+<h3 id='id113'>匿名函数</h3>
 
 <p>你也可以创建一个匿名函数</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; <span class='o'>(</span>x: Int<span class='o'>)</span> <span class='o'>=</span>&gt; x + 1
@@ -206,7 +206,7 @@ res0: <span class='o'>(</span>Int<span class='o'>)</span> <span class='o'>=</spa
 </code></pre></div>
 <p>当把匿名函数当作参数传递时，你会经常看见这种用法。</p>
 
-<h3 id='id282'>局部应用</h3>
+<h3 id='id114'>局部应用</h3>
 
 <p>你可以通过下划线来局部应用一个函数，这像是给你了另一个函数。Scala 使用下划线来代表不同的上下文环境的不同东西，但是通常你可以把它看成是未命名的魔法通配符。在{_ + 2}这个上下文环境意味着一个未命名的参数。你可以这样使用它：</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; def adder<span class='o'>(</span>m: Int,n: Int<span class='o'>)</span> <span class='o'>=</span> m + n
@@ -242,7 +242,7 @@ res1: <span class='nv'>Int</span> <span class='o'>=</span> 6
 <div class='highlight'><pre><code class='bash'>scala&gt; <span class='o'>(</span>adder _<span class='o'>)</span>.curried
 res1: <span class='o'>(</span>Int<span class='o'>)</span> <span class='o'>=</span>&gt; <span class='o'>(</span>Int<span class='o'>)</span> <span class='o'>=</span>&gt; <span class='nv'>Int</span> <span class='o'>=</span> &lt;function1&gt;
 </code></pre></div>
-<h4 id='id283'>变量长度参数</h4>
+<h4 id='id115'>变量长度参数</h4>
 
 <p>方法有一个特殊的语法，可以接受重复类型的参数。要给String 的captitalize 函数应用多个字符串，你可以这样写。</p>
 <div class='highlight'><pre><code class='bash'>def capitalizeAll<span class='o'>(</span>args: String*<span class='o'>)</span> <span class='o'>=</span> <span class='o'>{</span>
@@ -254,7 +254,7 @@ res1: <span class='o'>(</span>Int<span class='o'>)</span> <span class='o'>=</spa
 scala&gt; captitalizeAll<span class='o'>(</span><span class='s2'>&quot;rarity&quot;</span>, <span class='s2'>&quot;applejack&quot;</span><span class='o'>)</span>
 res2: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>Rarity, Applejack<span class='o'>)</span>
 </code></pre></div>
-<h2 id='id284'>类</h2>
+<h2 id='id116'>类</h2>
 <div class='highlight'><pre><code class='bash'>scala&gt; class Calculator<span class='o'>{</span>
      |   val brand: <span class='nv'>String</span> <span class='o'>=</span> <span class='s2'>&quot;HP&quot;</span>
      |   val add<span class='o'>(</span>m: Int,n: Int<span class='o'>)</span>: <span class='nv'>Int</span> <span class='o'>=</span> m + n
@@ -272,7 +272,7 @@ res2:String <span class='o'>=</span> <span class='s2'>&quot;HP&quot;</span>
 </code></pre></div>
 <p>Contained 是一个通过def 定义的方法和 val 定义的field 。方法只是可以访问class 的state 的函数。</p>
 
-<h3 id='id285'>构造器</h3>
+<h3 id='id117'>构造器</h3>
 
 <p>构造器是一个特殊的方法，他们是在你class 定义代码之外的方法。让我们来扩展我们的Calculator 例子来接受一个构造器参数，然后使用它初始化内部state。</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>Calculator</span><span class='o'>(</span><span class='n'>brand</span><span class='k'>:</span><span class='kt'>String</span><span class='o'>){</span>
@@ -299,11 +299,11 @@ calc: <span class='nv'>Calculator</span> <span class='o'>=</span> Calculator@1e6
 scala&gt; calc.color
 res0: <span class='nv'>String</span> <span class='o'>=</span> black
 </code></pre></div>
-<h3 id='id286'>表达式</h3>
+<h3 id='id118'>表达式</h3>
 
 <p>BasciCalulator 例子给我们一个Scala 面向对象表达式的例子。color 值的限定基于if/else 表达式。Scala 是高度面向对象的表达式：很多东西都是公式而不语句。</p>
 
-<h3 id='id287'>旁白：函数和方法</h3>
+<h3 id='id119'>旁白：函数和方法</h3>
 <div class='highlight'><pre><code class='bash'>scala&gt; class C <span class='o'>{</span>
      |   var <span class='nv'>acc</span> <span class='o'>=</span> 0
      |   def <span class='nv'>minc</span> <span class='o'>=</span> <span class='o'>{</span> acc +<span class='o'>=</span> 1 <span class='o'>}</span>
@@ -323,19 +323,19 @@ res2: <span class='o'>()</span> <span class='o'>=</span>&gt; <span class='nv'>Un
 
 <p>实践证明，当你对方法和函数的区别感到迷迷糊糊时你也可以用Scala 来做好多事情。如果你是Scala 小白，并且google 了一下 difference scala function method，你可能就更糊涂了。这并不是意味着你在使用Scala 的时候稀里糊涂。仅仅是因为函数和方法的区别太细微了，弄明白它得扣好多语言的很深的部分。</p>
 
-<h2 id='id288'>继承基础</h2>
+<h2 id='id120'>继承基础</h2>
 <div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>ScientificCalculator</span><span class='o'>(</span><span class='n'>brand</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>Calulator</span><span class='o'>(</span><span class='n'>brand</span><span class='o'>)</span> <span class='o'>{</span>
     <span class='k'>def</span> <span class='n'>log</span><span class='o'>(</span><span class='n'>m</span><span class='k'>:</span> <span class='kt'>Double</span><span class='o'>,</span><span class='n'>base</span><span class='k'>:</span> <span class='kt'>Double</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>math</span><span class='o'>.</span><span class='n'>log</span><span class='o'>(</span><span class='n'>m</span><span class='o'>)</span> <span class='o'>/</span> <span class='n'>math</span><span class='o'>.</span><span class='n'>log</span><span class='o'>(</span><span class='n'>base</span><span class='o'>)</span>
 <span class='o'>}</span>
 </code></pre></div>
 <p>看Effective Scala 里面指出了如果子类是在和超类没什么不同 <a href='http://twitter.github.com/effectivescala/#Types%20and%20Generics-Type%20aliases'>类型别名</a>比extends 好的多。A Tour of Scala 描述了 <a href='http://www.scala-lang.org/node/125'>子类</a>。</p>
 
-<h3 id='id289'>重载方法</h3>
+<h3 id='id121'>重载方法</h3>
 <div class='highlight'><pre><code class='bash'>class EvenMoreScientificCalculator<span class='o'>(</span>brand:String<span class='o'>)</span> extends ScientificCalculator<span class='o'>(</span>brand<span class='o'>)</span> <span class='o'>{</span>
     def log<span class='o'>(</span>m: Int<span class='o'>)</span>:Double <span class='o'>=</span> log<span class='o'>(</span>m,math.exp<span class='o'>(</span>1<span class='o'>))</span>
 <span class='o'>}</span>
 </code></pre></div>
-<h3 id='id290'>抽象类</h3>
+<h3 id='id122'>抽象类</h3>
 
 <p>你可以定义一个抽象类，一个定义了一些方法却并没有实现的类。子类可以继承自抽象类然后扩展这些方法。你不能为抽象类创建一个实例。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; abstract class Shape <span class='o'>{</span>
@@ -356,7 +356,7 @@ scala&gt; val <span class='nv'>s</span> <span class='o'>=</span> new Shape
 scala&gt; val <span class='nv'>c</span> <span class='o'>=</span> new Circle<span class='o'>(</span>2<span class='o'>)</span>
 c: <span class='nv'>Circle</span> <span class='o'>=</span> Circle@65c0035b
 </code></pre></div>
-<h2 id='id291'>接口</h2>
+<h2 id='id123'>接口</h2>
 
 <p>接口是一个你可以扩展或者mixin 到你的类的field 和行为的集合。</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Car</span> <span class='o'>{</span>
@@ -388,7 +388,7 @@ c: <span class='nv'>Circle</span> <span class='o'>=</span> Circle@65c0035b
 
 <p>你不是第一个问这个问题的人。在这里看到更完整的答案,StackOverflow:<a href='http://stackoverflow.com/questions/1991042/scala-traits-vs-abstract-classes'>stackoverflow:Scala traits vs abstract classes</a>，<a href='http://stackoverflow.com/questions/2005681/difference-between-abstract-class-and-trait'>Difference between Abstract Class and Trait</a>,Programming in Scala:<a href='http://www.artima.com/pins1ed/traits.html#12.7'>To trait, or not to tit, or not to trait?</a>。</p>
 
-<h2 id='id292'>类型</h2>
+<h2 id='id124'>类型</h2>
 
 <p>之前，你看到了我们定义了一个接受Int 的函数，Int 就是Number 类型。函数可以是通用的可以接受任何类型。当这发生时，你会看到方括号语法的类型参数介绍。这是一个通用Keys 和Values 的Cache 的例子。</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>Cache</span><span class='o'>[</span><span class='kt'>K</span>,<span class='kt'>V</span><span class='o'>]</span> <span class='o'>{</span>
