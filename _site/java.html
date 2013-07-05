@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Java 和 Scala</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">Java 和 Scala</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "concurrency.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="finagle.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>课程包括和Java 的交互</p>
+
+<ul>
+<li>javap</li>
+
+<li>类 Classes</li>
+
+<li>异常 Exceptions</li>
+
+<li>特质 Traits</li>
+
+<li>Objects</li>
+
+<li>Closures 和 Function</li>
+
+<li>Variance</li>
+</ul>
+
+<h2 id='javap'>Javap</h2>
+
+<p>javap 是JDK 附带的一个工具，JRE 里面是没有的。这里有一个不同，Javap 反编译类定义同时显示里面的内容。使用方法非常简单</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span><span class='nb'>local</span> ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop<span class='o'>]</span><span class='nv'>$ </span>javap MyTrait
+Compiled from <span class='s2'>&quot;Scalaisms.scala&quot;</span>
+public interface com.twitter.interop.MyTrait extends scala.ScalaObject<span class='o'>{</span>
+    public abstract java.lang.String traitName<span class='o'>()</span>;
+    public abstract java.lang.String upperTraitName<span class='o'>()</span>;
+<span class='o'>}</span>
+</code></pre></div>
+<p>如果你是hardcore 你会看见字节码。</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span><span class='nb'>local</span> ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop<span class='o'>]</span><span class='nv'>$ </span>javap -c MyTrait<span class='se'>\$</span>class
+Compiled from <span class='s2'>&quot;Scalaisms.scala&quot;</span>
+public abstract class com.twitter.interop.MyTrait<span class='nv'>$class</span> extends java.lang.Object<span class='o'>{</span>
+public static java.lang.String upperTraitName<span class='o'>(</span>com.twitter.interop.MyTrait<span class='o'>)</span>;
+  Code:
+   0:	aload_0
+   1:	invokeinterface	<span class='c'>#12,  1; //InterfaceMethod com/twitter/interop/MyTrait.traitName:()Ljava/lang/String;</span>
+   6:	invokevirtual	<span class='c'>#17; //Method java/lang/String.toUpperCase:()Ljava/lang/String;</span>
+   9:	areturn
+
+public static void <span class='nv'>$init</span><span class='k'>$(</span>com.twitter.interop.MyTrait<span class='k'>)</span>;
+  Code:
+   0:	<span class='k'>return</span>
+
+<span class='o'>}</span>
+</code></pre></div>
+<p>如果你开始迷惑为什么这在Java 这片土地里不好用，好好看看javap！</p>
+
+<h2 id='classes'>Classes</h2>
+
+<p>下面四个主要情况下可以考虑在Java 里使用Scala 的class</p>
+
+<ul>
+<li>Class 参数</li>
+
+<li>Class vals</li>
+
+<li>Class vars</li>
+
+<li>Exceptions 异常</li>
+</ul>
+
+<p>我们将要构造一个简单的scala 类来展示全方位的实体</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.interop</span>
+
+<span class='k'>import</span> <span class='nn'>java.io.IOException</span>
+<span class='k'>import</span> <span class='nn'>scala.throws</span>
+<span class='k'>import</span> <span class='nn'>scala.reflect.</span><span class='o'>{</span><span class='nc'>BeanProperty</span><span class='o'>,</span> <span class='nc'>BooleanBeanProperty</span><span class='o'>}</span>
+
+<span class='k'>class</span> <span class='nc'>SimpleClass</span><span class='o'>(</span><span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='k'>val</span> <span class='n'>acc</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='nd'>@BeanProperty</span> <span class='k'>var</span> <span class='n'>mutable</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>foo</span> <span class='k'>=</span> <span class='s'>&quot;foo&quot;</span>
+  <span class='k'>var</span> <span class='n'>bar</span> <span class='k'>=</span> <span class='s'>&quot;bar&quot;</span>
+  <span class='nd'>@BeanProperty</span>
+  <span class='k'>val</span> <span class='n'>fooBean</span> <span class='k'>=</span> <span class='s'>&quot;foobean&quot;</span>
+  <span class='nd'>@BeanProperty</span>
+  <span class='k'>var</span> <span class='n'>barBean</span> <span class='k'>=</span> <span class='s'>&quot;barbean&quot;</span>
+  <span class='nd'>@BooleanBeanProperty</span>
+  <span class='k'>var</span> <span class='n'>awesome</span> <span class='k'>=</span> <span class='kc'>true</span>
+
+  <span class='k'>def</span> <span class='n'>dangerFoo</span><span class='o'>()</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>throw</span> <span class='k'>new</span> <span class='nc'>IOException</span><span class='o'>(</span><span class='s'>&quot;SURPRISE!&quot;</span><span class='o'>)</span>
+  <span class='o'>}</span>
+
+  <span class='nd'>@throws</span><span class='o'>(</span><span class='n'>classOf</span><span class='o'>[</span><span class='kt'>IOException</span><span class='o'>])</span>
+  <span class='k'>def</span> <span class='n'>dangerBar</span><span class='o'>()</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>throw</span> <span class='k'>new</span> <span class='nc'>IOException</span><span class='o'>(</span><span class='s'>&quot;NO SURPRISE!&quot;</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h3 id='class_'>Class 参数</h3>
+
+<ul>
+<li>默认的，class 参数Java 里面有效的构造参数。这意味着你可以在class 外面访问它们。</li>
+
+<li>向下面这段代码一样使用val/var 声明一个类参数</li>
+</ul>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>SimpleClass</span><span class='o'>(</span><span class='n'>acc_:</span> <span class='nc'>String</span><span class='o'>)</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>acc</span> <span class='k'>=</span> <span class='n'>acc_</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这让它从Java 里面可访问的就像其它的vals 一样。</p>
+
+<h3 id='vals'>Vals</h3>
+
+<ul>
+<li>vals 从Java 那里获得方法定义。你可以通过“foo()”方法访问val &#8220;foo&#8221;的值。</li>
+</ul>
+
+<h3 id='vars'>Vars</h3>
+
+<ul>
+<li>vars 获得一个方法 _$eq 定义。你可以向这样调用它。</li>
+</ul>
+<div class='highlight'><pre><code class='scala'><span class='n'>foo$_eq</span><span class='o'>(</span><span class='s'>&quot;newfoo&quot;</span><span class='o'>);</span>
+</code></pre></div>
+<h3 id='beanproperty'>BeanProperty</h3>
+
+<p>你可以用@BeanProperty 来注释vars 。这样会生成看起来像getter/setter 的POJO getter/setter 定义。如果你想要isFoo 的变体，使用BooleanBeanProperty 注释。这样丑陋的foo$_eq 就会变成</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>setFoo</span><span class='o'>(</span><span class='s'>&quot;newfoo&quot;</span><span class='o'>);</span>
+<span class='n'>getFoo</span><span class='o'>();</span>
+</code></pre></div>
+<h3 id='id164'>异常</h3>
+
+<p>Scala 没有异常检查，Java 有。我们不想陷入到这场哲学的辩论，不过和当你想在Java 里捕捉异常有关系。这是dangerFoo 和dangerBar 示例的定义。在Java 里我们不能这么做</p>
+<div class='highlight'><pre><code class='scala'>        <span class='c1'>// exception erasure!</span>
+        <span class='k'>try</span> <span class='o'>{</span>
+            <span class='n'>s</span><span class='o'>.</span><span class='n'>dangerFoo</span><span class='o'>();</span>
+        <span class='o'>}</span> <span class='k'>catch</span> <span class='o'>(</span><span class='nc'>IOException</span> <span class='n'>e</span><span class='o'>)</span> <span class='o'>{</span>
+            <span class='c1'>// UGLY</span>
+        <span class='o'>}</span>
+</code></pre></div>
+<p>Java 会抱怨s.dangerFoo 从来没有抛出过IOException。我们可以通过hack ，用捕获异常来把它包起来，但是这样做太蹩脚了。</p>
+
+<p>相反，作为一个好的Scala 公民，这是一个像样的主意向我们dangerBar 里面做的那样来使用抛出注解。这允许我们继续使用Java 里面的异常检查。</p>
+
+<h3 id='id165'>更多的阅读</h3>
+
+<p>完整的支持和Java 互操作的Scala 注解可以在这里找到 http://www.scala-lang.org/node/106。</p>
+
+<h2 id='_traits'>特质 Traits</h2>
+
+<p>怎样获得一个接口+实现呢？让我们来看看这个简单的特质的定义。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>MyTrait</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>traitName</span><span class='k'>:</span><span class='kt'>String</span>
+  <span class='k'>def</span> <span class='n'>upperTraitName</span> <span class='k'>=</span> <span class='n'>traitName</span><span class='o'>.</span><span class='n'>toUpperCase</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这个特质没有抽象的方法（traitName）和一个实现的方法（upperTraint）。Scala 为我们生成了什么呢？一个叫做MyTrait 的接口，一个伴生的叫做MyTrait$class 的实现。</p>
+
+<p>MyTrait 的实现正是你期待的</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span><span class='nb'>local</span> ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop<span class='o'>]</span><span class='nv'>$ </span>javap MyTrait
+Compiled from <span class='s2'>&quot;Scalaisms.scala&quot;</span>
+public interface com.twitter.interop.MyTrait extends scala.ScalaObject<span class='o'>{</span>
+    public abstract java.lang.String traitName<span class='o'>()</span>;
+    public abstract java.lang.String upperTraitName<span class='o'>()</span>;
+<span class='o'>}</span>
+</code></pre></div>
+<p>MyTrait$class 的实现更有趣</p>
+<div class='highlight'><pre><code class='bash'><span class='o'>[</span><span class='nb'>local</span> ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop<span class='o'>]</span><span class='nv'>$ </span>javap MyTrait<span class='se'>\$</span>class
+Compiled from <span class='s2'>&quot;Scalaisms.scala&quot;</span>
+public abstract class com.twitter.interop.MyTrait<span class='nv'>$class</span> extends java.lang.Object<span class='o'>{</span>
+    public static java.lang.String upperTraitName<span class='o'>(</span>com.twitter.interop.MyTrait<span class='o'>)</span>;
+    public static void <span class='nv'>$init</span><span class='k'>$(</span>com.twitter.interop.MyTrait<span class='k'>)</span>;
+<span class='o'>}</span>
+</code></pre></div>
+<p>MyTrait$class 仅有一个接受MyTrait 实例的静态方法。它给我们一个怎样在Java 里扩展特质的线索。</p>
+
+<p>我们首先的尝试如下：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.interop</span><span class='o'>;</span>
+
+<span class='n'>public</span> <span class='k'>class</span> <span class='nc'>JTraitImpl</span> <span class='n'>implements</span> <span class='nc'>MyTrait</span> <span class='o'>{</span>
+    <span class='k'>private</span> <span class='nc'>String</span> <span class='n'>name</span> <span class='k'>=</span> <span class='kc'>null</span><span class='o'>;</span>
+
+    <span class='n'>public</span> <span class='nc'>JTraitImpl</span><span class='o'>(</span><span class='nc'>String</span> <span class='n'>name</span><span class='o'>)</span> <span class='o'>{</span>
+        <span class='k'>this</span><span class='o'>.</span><span class='n'>name</span> <span class='k'>=</span> <span class='n'>name</span><span class='o'>;</span>
+    <span class='o'>}</span>
+
+    <span class='n'>public</span> <span class='nc'>String</span> <span class='n'>traitName</span><span class='o'>()</span> <span class='o'>{</span>
+        <span class='k'>return</span> <span class='n'>name</span><span class='o'>;</span>
+    <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这时我们得到了如下错误</p>
+<div class='highlight'><pre><code class='scala'><span class='o'>[</span><span class='kt'>info</span><span class='o'>]</span> <span class='nc'>Compiling</span> <span class='n'>main</span> <span class='n'>sources</span><span class='o'>...</span>
+<span class='o'>[</span><span class='kt'>error</span><span class='o'>]</span> <span class='o'>/</span><span class='nc'>Users</span><span class='o'>/</span><span class='n'>mmcbride</span><span class='o'>/</span><span class='n'>projects</span><span class='o'>/</span><span class='n'>interop</span><span class='o'>/</span><span class='n'>src</span><span class='o'>/</span><span class='n'>main</span><span class='o'>/</span><span class='n'>java</span><span class='o'>/</span><span class='n'>com</span><span class='o'>/</span><span class='n'>twitter</span><span class='o'>/</span><span class='n'>interop</span><span class='o'>/</span><span class='nc'>JTraitImpl</span><span class='o'>.</span><span class='n'>java</span><span class='k'>:</span><span class='err'>3</span><span class='kt'>:</span> <span class='kt'>com.twitter.interop.JTraitImpl</span> <span class='kt'>is</span> <span class='kt'>not</span> <span class='kt'>abstract</span> <span class='kt'>and</span> <span class='kt'>does</span> <span class='kt'>not</span> <span class='kt'>override</span> <span class='kt'>abstract</span> <span class='kt'>method</span> <span class='kt'>upperTraitName</span><span class='o'>()</span> <span class='kt'>in</span> <span class='kt'>com.twitter.interop.MyTrait</span>
+<span class='o'>[</span><span class='kt'>error</span><span class='o'>]</span> <span class='n'>public</span> <span class='k'>class</span> <span class='nc'>JTraitImpl</span> <span class='n'>implements</span> <span class='nc'>MyTrait</span> <span class='o'>{</span>
+<span class='o'>[</span><span class='kt'>error</span><span class='o'>]</span>        <span class='o'>^</span>
+</code></pre></div>
+<p>我们可以仅仅自己来实现，但是这是一种鬼鬼祟祟的方式。</p>
+<div class='highlight'><pre><code class='scala'>    <span class='k'>package</span> <span class='nn'>com.twitter.interop</span><span class='o'>;</span>
+
+    <span class='n'>public</span> <span class='nc'>String</span> <span class='n'>upperTraitName</span><span class='o'>()</span> <span class='o'>{</span>
+        <span class='k'>return</span> <span class='nc'>MyTrait$class</span><span class='o'>.</span><span class='n'>upperTraitName</span><span class='o'>(</span><span class='k'>this</span><span class='o'>);</span>
+    <span class='o'>}</span>
+</code></pre></div>
+<p>我们仅仅是用这个调用来生成Scala 实现，如果我们愿意我们也可以重载它。</p>
+
+<h2 id='objects'>Objects</h2>
+
+<p>Objects 是新的Scala 实现静态的方法/单例。从Java 里面使用它们有一点奇怪。没有一个使用它们的完美的文体，但是在Scala 2.8 起它就不那么可怕了。</p>
+
+<p>一个Scala object 编译成为以&#8221;$&#8221;结尾的class。让我们来建立一个class 以及一个伴生类。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>TraitImpl</span><span class='o'>(</span><span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>MyTrait</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>traitName</span> <span class='k'>=</span> <span class='n'>name</span>
+<span class='o'>}</span>
+
+<span class='k'>object</span> <span class='nc'>TraitImpl</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>apply</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>TraitImpl</span><span class='o'>(</span><span class='s'>&quot;foo&quot;</span><span class='o'>)</span>
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>TraitImpl</span><span class='o'>(</span><span class='n'>name</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>我们可以在Java 里面天真的像这样访问</p>
+<div class='highlight'><pre><code class='scala'><span class='nc'>MyTrait</span> <span class='n'>foo</span> <span class='k'>=</span> <span class='nc'>TraitImpl</span><span class='n'>$</span><span class='o'>.</span><span class='nc'>MODULE</span><span class='n'>$</span><span class='o'>.</span><span class='n'>apply</span><span class='o'>(</span><span class='s'>&quot;foo&quot;</span><span class='o'>);</span>
+</code></pre></div>
+<p>现在你可能会这样想，次奥！这是一个正常的反应。让我们来看看正常的TraitImpl.$ 的里面是什么样子</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>local</span> <span class='o'>~/</span><span class='n'>projects</span><span class='o'>/</span><span class='n'>interop</span><span class='o'>/</span><span class='n'>target</span><span class='o'>/</span><span class='n'>scala_2</span><span class='o'>.</span><span class='mf'>8.1</span><span class='o'>/</span><span class='n'>classes</span><span class='o'>/</span><span class='n'>com</span><span class='o'>/</span><span class='n'>twitter</span><span class='o'>/</span><span class='n'>interop</span><span class='err'>]</span><span class='n'>$</span> <span class='n'>javap</span> <span class='nc'>TraitImpl</span><span class='o'>\</span><span class='n'>$</span>
+<span class='nc'>Compiled</span> <span class='n'>from</span> <span class='s'>&quot;Scalaisms.scala&quot;</span>
+<span class='n'>public</span> <span class='k'>final</span> <span class='k'>class</span> <span class='nc'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>interop</span><span class='o'>.</span><span class='nc'>TraitImpl</span><span class='n'>$</span> <span class='k'>extends</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>lang</span><span class='o'>.</span><span class='nc'>Object</span> <span class='n'>implements</span> <span class='n'>scala</span><span class='o'>.</span><span class='nc'>ScalaObject</span><span class='o'>{</span>
+    <span class='n'>public</span> <span class='n'>static</span> <span class='k'>final</span> <span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>interop</span><span class='o'>.</span><span class='nc'>TraitImpl</span><span class='n'>$</span> <span class='nc'>MODULE</span><span class='n'>$</span><span class='o'>;</span>
+    <span class='n'>public</span> <span class='n'>static</span> <span class='o'>{};</span>
+    <span class='n'>public</span> <span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>interop</span><span class='o'>.</span><span class='nc'>TraitImpl</span> <span class='n'>apply</span><span class='o'>();</span>
+    <span class='n'>public</span> <span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>interop</span><span class='o'>.</span><span class='nc'>TraitImpl</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>java</span><span class='o'>.</span><span class='n'>lang</span><span class='o'>.</span><span class='nc'>String</span><span class='o'>);</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这确实不是什么静态方法。相反这是一个叫做MODULE$ 的静态成员。这个方法的实现代表了这个成员。这就让我们的访问变得丑陋无比，但是如果你了解MODULE$ 它还是能凑合的。</p>
+
+<h3 id='forwarding_methods'>Forwarding Methods</h3>
+
+<p>在Scala 2.8 里面处理Objects 变的很容易。如果你有一个含有伴生类的class，2.8 编译器会在伴生类上生成forwarding 方法。因此如果你是由2.8构建的话，你可以像这样来访问TraitImpl Object 方法</p>
+<div class='highlight'><pre><code class='scala'><span class='nc'>MyTrait</span> <span class='n'>foo</span> <span class='k'>=</span> <span class='nc'>TraitImpl</span><span class='o'>.</span><span class='n'>apply</span><span class='o'>(</span><span class='s'>&quot;foo&quot;</span><span class='o'>);</span>
+</code></pre></div>
+<h2 id='closures_functions'>Closures Functions</h2>
+
+<p>Scala 最重要的一个特性就是把函数做为一等公民。然我们定义一个接受一些函数做为单数的方法的类。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>ClosureClass</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>printResult</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>](</span><span class='n'>f</span><span class='k'>:</span> <span class='o'>=&gt;</span> <span class='n'>T</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>println</span><span class='o'>(</span><span class='n'>f</span><span class='o'>)</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>printResult</span><span class='o'>[</span><span class='kt'>T</span><span class='o'>](</span><span class='n'>f</span><span class='k'>:</span> <span class='kt'>String</span> <span class='o'>=&gt;</span> <span class='n'>T</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>println</span><span class='o'>(</span><span class='n'>f</span><span class='o'>(</span><span class='s'>&quot;HI THERE&quot;</span><span class='o'>))</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>在Scala 里我可以这样调用它</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>cc</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>ClosureClass</span>
+<span class='n'>cc</span><span class='o'>.</span><span class='n'>printResult</span> <span class='o'>{</span> <span class='s'>&quot;HI MOM&quot;</span> <span class='o'>}</span>
+</code></pre></div>
+<p>在Java 里就没这么容易了，不过也没有你想那么可怕。让我们看看ClosureClass 实际上编译成什么了：</p>
+<div class='highlight'><pre><code class='scala'><span class='o'>[</span><span class='kt'>local</span> <span class='kt'>~/projects/interop/target/scala_2.</span><span class='err'>8</span><span class='kt'>.</span><span class='err'>1</span><span class='kt'>/classes/com/twitter/interop</span><span class='o'>]</span><span class='n'>$</span> <span class='n'>javap</span> <span class='nc'>ClosureClass</span>
+<span class='nc'>Compiled</span> <span class='n'>from</span> <span class='s'>&quot;Scalaisms.scala&quot;</span>
+<span class='n'>public</span> <span class='k'>class</span> <span class='nc'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>interop</span><span class='o'>.</span><span class='nc'>ClosureClass</span> <span class='k'>extends</span> <span class='n'>java</span><span class='o'>.</span><span class='n'>lang</span><span class='o'>.</span><span class='nc'>Object</span> <span class='n'>implements</span> <span class='n'>scala</span><span class='o'>.</span><span class='nc'>ScalaObject</span><span class='o'>{</span>
+    <span class='n'>public</span> <span class='n'>void</span> <span class='n'>printResult</span><span class='o'>(</span><span class='n'>scala</span><span class='o'>.</span><span class='nc'>Function0</span><span class='o'>);</span>
+    <span class='n'>public</span> <span class='n'>void</span> <span class='n'>printResult</span><span class='o'>(</span><span class='n'>scala</span><span class='o'>.</span><span class='nc'>Function1</span><span class='o'>);</span>
+    <span class='n'>public</span> <span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>interop</span><span class='o'>.</span><span class='nc'>ClosureClass</span><span class='o'>();</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这也太吓人了。“f: =&gt; T” 翻译成为“Function0”,“f:String =&gt; T” 翻译成为“Function1”。Scala 实际上通过Function22 定义了Function0,支持它的22 个参数。实在是太够劲了。</p>
+
+<p>现在只需要指出怎样在Java 里面获得这些东西。事实证明Scala 提供了一个AbstractFunction0 和 AbstractFunction1 ，我们可以这样传递进来</p>
+
+<p><div class='highlight'><pre><code class='scala'>    <span class='nd'>@Test</span> <span class='n'>public</span> <span class='n'>void</span> <span class='n'>closureTest</span><span class='o'>()</span> <span class='o'>{</span>
+        <span class='nc'>ClosureClass</span> <span class='n'>c</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>ClosureClass</span><span class='o'>();</span>
+        <span class='n'>c</span><span class='o'>.</span><span class='n'>printResult</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>AbstractFunction0</span><span class='o'>()</span> <span class='o'>{</span>
+                <span class='n'>public</span> <span class='nc'>String</span> <span class='n'>apply</span><span class='o'>()</span> <span class='o'>{</span>
+                    <span class='k'>return</span> <span class='s'>&quot;foo&quot;</span><span class='o'>;</span>
+                <span class='o'>}</span>
+            <span class='o'>});</span>
+        <span class='n'>c</span><span class='o'>.</span><span class='n'>printResult</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>AbstractFunction1</span><span class='o'>&lt;</span><span class='nc'>String</span><span class='o'>,</span> <span class='nc'>String</span><span class='o'>&gt;()</span> <span class='o'>{</span>
+                <span class='n'>public</span> <span class='nc'>String</span> <span class='n'>apply</span><span class='o'>(</span><span class='nc'>String</span> <span class='n'>arg</span><span class='o'>)</span> <span class='o'>{</span>
+                    <span class='k'>return</span> <span class='n'>arg</span> <span class='o'>+</span> <span class='s'>&quot;foo&quot;</span><span class='o'>;</span>
+                <span class='o'>}</span>
+            <span class='o'>});</span>
+    <span class='o'>}</span>
+</code></pre></div></p>
+
+<p>注意我们可以生成parameterize arguments。</p>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>

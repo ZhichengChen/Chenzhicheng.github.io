@@ -82,7 +82,7 @@
 </li>
 </ul>
 
-<h2 id='id135'>启程</h2>
+<h2 id='id139'>启程</h2>
 
 <ul>
 <li><a href='http://code.google.com/p/simple-build-tool/downloads/list'>下载</a>jar 文件</li>
@@ -124,7 +124,7 @@ Getting Scala 2.8.1 ...
 </code></pre></div>
 <p>注意项目以SNAPSHOT 版本开始是一个不错的惯例。</p>
 
-<h2 id='id136'>项目轮廓</h2>
+<h2 id='id140'>项目轮廓</h2>
 
 <ul>
 <li>
@@ -158,7 +158,7 @@ Getting Scala 2.8.1 ...
 </li>
 </ul>
 
-<h2 id='id137'>添加代码</h2>
+<h2 id='id141'>添加代码</h2>
 
 <p>我们将为简单的tweets 创建一个简单的JSON 解析器。把下面代码添加到/src/main/scala/com/twitter/sample/SimpleParser.scala</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.sample</span>
@@ -183,7 +183,7 @@ Getting Scala 2.8.1 ...
 </code></pre></div>
 <p>这代码很丑陋有很多bug，不过还好可以编译。</p>
 
-<h2 id='id138'>在控制台里面测试</h2>
+<h2 id='id142'>在控制台里面测试</h2>
 
 <p>SBT 可以被当做一个命令行脚本或者一个构建控制台。我们将主要把它当做构建控制台，但是更多的命令可以作为SBT 的一个参数传入命令单独运行，比如</p>
 <div class='highlight'><pre><code class='bash'>sbt <span class='nb'>test</span>
@@ -246,7 +246,7 @@ res0: Option<span class='o'>[</span>com.twitter.sample.SimpleParsed<span class='
 
 scala&gt; 
 </code></pre></div>
-<h2 id='id139'>增加依赖</h2>
+<h2 id='id143'>增加依赖</h2>
 
 <p>我们针对这个很小集合输入的简单解析工作了，但是我们想要打断它插入一个测试。第一步是添加specs 测试类库以及给我们的项目添加一个真正的JSON 解析。为了做到这点，我们不得不在默认SBT 轮廓之外创建一个项目。</p>
 
@@ -292,7 +292,7 @@ scala&gt;
 </code></pre></div>
 <p>你会看到sbt 检索specs 库。你现在将要拥有一个lib_managed 库，同时lib_managed/scala_2.8.1/test 将有specs_2.8.0-1.6.5.jar</p>
 
-<h2 id='id140'>添加测试</h2>
+<h2 id='id144'>添加测试</h2>
 
 <p>现在我们添加了测试类库，把下面的代码放到 src/test/scala/com/twitter/sample/SimpleParserSpec.scala</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.sample</span>
@@ -506,7 +506,7 @@ scala&gt;
 </code></pre></div>
 <p>它生效了！</p>
 
-<h2 id='id141'>打包和部署</h2>
+<h2 id='id145'>打包和部署</h2>
 
 <p>在这里我们可以运行package 命令来生成jar 文件。不管怎样，我们可能想要和我们的团队共享我们的jar 文件。为了做到这一点我们将要构建与标准工程，这将会给我们一个大的头部开始。</p>
 
@@ -562,7 +562,7 @@ IvySvn Build-DateTime: null
 </code></pre></div>
 <p>过一会儿以后，我们可以到binaries.local.twitter.com:http://binaries.local.twitter/maven/com/twitter/sample/1.0-SNAPSHOT/ 来找到publish.jar。</p>
 
-<h2 id='id142'>添加任务</h2>
+<h2 id='id146'>添加任务</h2>
 
 <p>任务就是Scala 函数，添加任务的最简单方法就是在工程定义里面用task 方法来include 一个val，比如。</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>lazy</span> <span class='k'>val</span> <span class='n'>print</span> <span class='k'>=</span> <span class='n'>task</span> <span class='o'>{</span><span class='n'>log</span><span class='o'>.</span><span class='n'>info</span><span class='o'>(</span><span class='s'>&quot;a test action&quot;</span><span class='o'>);</span> <span class='nc'>None</span><span class='o'>}</span>
@@ -592,9 +592,9 @@ IvySvn Build-DateTime: null
 </code></pre></div>
 <p>StandardProject 有一些调整默认SBT 和订制任务的例子。</p>
 
-<h2 id='id143'>快速参考</h2>
+<h2 id='id147'>快速参考</h2>
 
-<h3 id='id144'>一般命令</h3>
+<h3 id='id148'>一般命令</h3>
 
 <ul>
 <li>actions - 显示这个项目里的可见命令</li>
@@ -624,7 +624,7 @@ IvySvn Build-DateTime: null
 <li>clean-lib - 清空lib_managed 里的一切</li>
 </ul>
 
-<h2 id='id145'>项目轮廓</h2>
+<h2 id='id149'>项目轮廓</h2>
 
 <p>TBD</p>
 </div>

@@ -1,0 +1,373 @@
+---
+layout: post
+title:  "Java 和 Scala"
+next_link:  finagle
+prev_link:  concurrency
+date:  2013-07-05 00:00:00
+categories: jekyll update
+---
+
+
+课程包括和Java 的交互
+
+*  javap
+*  类 Classes
+*  异常 Exceptions
+*  特质 Traits
+*  Objects
+*  Closures 和 Function
+*  Variance
+
+##Javap
+
+javap 是JDK 附带的一个工具，JRE 里面是没有的。这里有一个不同，Javap 反编译类定义同时显示里面的内容。使用方法非常简单
+  
+{% highlight bash %}
+
+[local ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop]$ javap MyTrait
+Compiled from "Scalaisms.scala"
+public interface com.twitter.interop.MyTrait extends scala.ScalaObject{
+    public abstract java.lang.String traitName();
+    public abstract java.lang.String upperTraitName();
+}
+
+{% endhighlight %}
+
+如果你是hardcore 你会看见字节码。
+
+{% highlight bash %}
+
+[local ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop]$ javap -c MyTrait\$class
+Compiled from "Scalaisms.scala"
+public abstract class com.twitter.interop.MyTrait$class extends java.lang.Object{
+public static java.lang.String upperTraitName(com.twitter.interop.MyTrait);
+  Code:
+   0:	aload_0
+   1:	invokeinterface	#12,  1; //InterfaceMethod com/twitter/interop/MyTrait.traitName:()Ljava/lang/String;
+   6:	invokevirtual	#17; //Method java/lang/String.toUpperCase:()Ljava/lang/String;
+   9:	areturn
+
+public static void $init$(com.twitter.interop.MyTrait);
+  Code:
+   0:	return
+
+}
+
+{% endhighlight %}
+
+如果你开始迷惑为什么这在Java 这片土地里不好用，好好看看javap！
+
+##Classes
+
+下面四个主要情况下可以考虑在Java 里使用Scala 的class
+
+*  Class 参数
+*  Class vals
+*  Class vars
+*  Exceptions 异常
+
+我们将要构造一个简单的scala 类来展示全方位的实体
+
+{% highlight scala %}
+
+package com.twitter.interop
+
+import java.io.IOException
+import scala.throws
+import scala.reflect.{BeanProperty, BooleanBeanProperty}
+
+class SimpleClass(name: String, val acc: String, @BeanProperty var mutable: String) {
+  val foo = "foo"
+  var bar = "bar"
+  @BeanProperty
+  val fooBean = "foobean"
+  @BeanProperty
+  var barBean = "barbean"
+  @BooleanBeanProperty
+  var awesome = true
+
+  def dangerFoo() = {
+    throw new IOException("SURPRISE!")
+  }
+
+  @throws(classOf[IOException])
+  def dangerBar() = {
+    throw new IOException("NO SURPRISE!")
+  }
+}
+
+{% endhighlight %}
+
+###Class 参数
+
+*  默认的，class 参数Java 里面有效的构造参数。这意味着你可以在class 外面访问它们。
+*  向下面这段代码一样使用val/var 声明一个类参数
+
+{% highlight scala %}
+
+class SimpleClass(acc_: String) {
+  val acc = acc_
+}
+
+{% endhighlight %}
+
+这让它从Java 里面可访问的就像其它的vals 一样。
+
+###Vals
+
+* vals 从Java 那里获得方法定义。你可以通过“foo()”方法访问val "foo"的值。
+
+###Vars
+
+* vars 获得一个方法 \_$eq 定义。你可以向这样调用它。
+
+{% highlight scala %}
+
+foo$_eq("newfoo");
+
+{% endhighlight %}
+
+###BeanProperty
+
+你可以用@BeanProperty 来注释vars 。这样会生成看起来像getter/setter 的POJO getter/setter 定义。如果你想要isFoo 的变体，使用BooleanBeanProperty 注释。这样丑陋的foo$\_eq 就会变成
+
+{% highlight scala %}
+
+setFoo("newfoo");
+getFoo();
+
+{% endhighlight %}
+
+###异常
+
+Scala 没有异常检查，Java 有。我们不想陷入到这场哲学的辩论，不过和当你想在Java 里捕捉异常有关系。这是dangerFoo 和dangerBar 示例的定义。在Java 里我们不能这么做
+
+{% highlight scala %}
+
+        // exception erasure!
+        try {
+            s.dangerFoo();
+        } catch (IOException e) {
+            // UGLY
+        }
+
+{% endhighlight %}
+
+Java 会抱怨s.dangerFoo 从来没有抛出过IOException。我们可以通过hack ，用捕获异常来把它包起来，但是这样做太蹩脚了。
+
+相反，作为一个好的Scala 公民，这是一个像样的主意向我们dangerBar 里面做的那样来使用抛出注解。这允许我们继续使用Java 里面的异常检查。
+
+###更多的阅读
+
+完整的支持和Java 互操作的Scala 注解可以在这里找到 http://www.scala-lang.org/node/106。
+
+## 特质 Traits
+
+怎样获得一个接口+实现呢？让我们来看看这个简单的特质的定义。
+
+{% highlight scala %}
+
+trait MyTrait {
+  def traitName:String
+  def upperTraitName = traitName.toUpperCase
+}
+
+{% endhighlight %}
+
+这个特质没有抽象的方法（traitName）和一个实现的方法（upperTraint）。Scala 为我们生成了什么呢？一个叫做MyTrait 的接口，一个伴生的叫做MyTrait$class 的实现。
+
+MyTrait 的实现正是你期待的
+
+{% highlight bash %}
+
+[local ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop]$ javap MyTrait
+Compiled from "Scalaisms.scala"
+public interface com.twitter.interop.MyTrait extends scala.ScalaObject{
+    public abstract java.lang.String traitName();
+    public abstract java.lang.String upperTraitName();
+}
+
+{% endhighlight %}
+
+MyTrait$class 的实现更有趣
+
+{% highlight bash %}
+
+[local ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop]$ javap MyTrait\$class
+Compiled from "Scalaisms.scala"
+public abstract class com.twitter.interop.MyTrait$class extends java.lang.Object{
+    public static java.lang.String upperTraitName(com.twitter.interop.MyTrait);
+    public static void $init$(com.twitter.interop.MyTrait);
+}
+
+{% endhighlight %}
+
+MyTrait$class 仅有一个接受MyTrait 实例的静态方法。它给我们一个怎样在Java 里扩展特质的线索。
+
+我们首先的尝试如下：
+
+{% highlight scala %}
+
+package com.twitter.interop;
+
+public class JTraitImpl implements MyTrait {
+    private String name = null;
+
+    public JTraitImpl(String name) {
+        this.name = name;
+    }
+
+    public String traitName() {
+        return name;
+    }
+}
+
+{% endhighlight %}
+
+这时我们得到了如下错误
+
+{% highlight scala %}
+
+[info] Compiling main sources...
+[error] /Users/mmcbride/projects/interop/src/main/java/com/twitter/interop/JTraitImpl.java:3: com.twitter.interop.JTraitImpl is not abstract and does not override abstract method upperTraitName() in com.twitter.interop.MyTrait
+[error] public class JTraitImpl implements MyTrait {
+[error]        ^
+
+{% endhighlight %}
+
+我们可以仅仅自己来实现，但是这是一种鬼鬼祟祟的方式。
+
+{% highlight scala %}
+
+    package com.twitter.interop;
+
+    public String upperTraitName() {
+        return MyTrait$class.upperTraitName(this);
+    }
+
+{% endhighlight %}
+
+我们仅仅是用这个调用来生成Scala 实现，如果我们愿意我们也可以重载它。
+
+##Objects
+
+Objects 是新的Scala 实现静态的方法/单例。从Java 里面使用它们有一点奇怪。没有一个使用它们的完美的文体，但是在Scala 2.8 起它就不那么可怕了。
+
+一个Scala object 编译成为以"$"结尾的class。让我们来建立一个class 以及一个伴生类。
+
+{% highlight scala %}
+
+class TraitImpl(name: String) extends MyTrait {
+  def traitName = name
+}
+
+object TraitImpl {
+  def apply = new TraitImpl("foo")
+  def apply(name: String) = new TraitImpl(name)
+}
+
+{% endhighlight %}
+
+我们可以在Java 里面天真的像这样访问
+
+{% highlight scala %}
+
+MyTrait foo = TraitImpl$.MODULE$.apply("foo");
+
+{% endhighlight %}
+
+现在你可能会这样想，次奥！这是一个正常的反应。让我们来看看正常的TraitImpl.$ 的里面是什么样子
+
+{% highlight scala %}
+
+local ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop]$ javap TraitImpl\$
+Compiled from "Scalaisms.scala"
+public final class com.twitter.interop.TraitImpl$ extends java.lang.Object implements scala.ScalaObject{
+    public static final com.twitter.interop.TraitImpl$ MODULE$;
+    public static {};
+    public com.twitter.interop.TraitImpl apply();
+    public com.twitter.interop.TraitImpl apply(java.lang.String);
+}
+
+{% endhighlight %}
+
+这确实不是什么静态方法。相反这是一个叫做MODULE$ 的静态成员。这个方法的实现代表了这个成员。这就让我们的访问变得丑陋无比，但是如果你了解MODULE$ 它还是能凑合的。
+
+###Forwarding Methods
+
+在Scala 2.8 里面处理Objects 变的很容易。如果你有一个含有伴生类的class，2.8 编译器会在伴生类上生成forwarding 方法。因此如果你是由2.8构建的话，你可以像这样来访问TraitImpl Object 方法
+
+{% highlight scala %}
+
+MyTrait foo = TraitImpl.apply("foo");
+
+{% endhighlight %}
+
+##Closures Functions
+
+Scala 最重要的一个特性就是把函数做为一等公民。然我们定义一个接受一些函数做为单数的方法的类。
+
+{% highlight scala %}
+
+class ClosureClass {
+  def printResult[T](f: => T) = {
+    println(f)
+  }
+
+  def printResult[T](f: String => T) = {
+    println(f("HI THERE"))
+  }
+}
+
+{% endhighlight %}
+
+在Scala 里我可以这样调用它
+
+{% highlight scala %}
+
+val cc = new ClosureClass
+cc.printResult { "HI MOM" }
+
+{% endhighlight %}
+
+在Java 里就没这么容易了，不过也没有你想那么可怕。让我们看看ClosureClass 实际上编译成什么了：
+
+{% highlight scala %}
+
+[local ~/projects/interop/target/scala_2.8.1/classes/com/twitter/interop]$ javap ClosureClass
+Compiled from "Scalaisms.scala"
+public class com.twitter.interop.ClosureClass extends java.lang.Object implements scala.ScalaObject{
+    public void printResult(scala.Function0);
+    public void printResult(scala.Function1);
+    public com.twitter.interop.ClosureClass();
+}
+
+{% endhighlight %}
+
+这也太吓人了。“f: => T” 翻译成为“Function0”,“f:String => T” 翻译成为“Function1”。Scala 实际上通过Function22 定义了Function0,支持它的22 个参数。实在是太够劲了。
+
+现在只需要指出怎样在Java 里面获得这些东西。事实证明Scala 提供了一个AbstractFunction0 和 AbstractFunction1 ，我们可以这样传递进来
+
+{% highlight scala %}
+
+
+
+    @Test public void closureTest() {
+        ClosureClass c = new ClosureClass();
+        c.printResult(new AbstractFunction0() {
+                public String apply() {
+                    return "foo";
+                }
+            });
+        c.printResult(new AbstractFunction1<String, String>() {
+                public String apply(String arg) {
+                    return arg + "foo";
+                }
+            });
+    }
+
+{% endhighlight %}
+
+注意我们可以生成parameterize arguments。
+
+
