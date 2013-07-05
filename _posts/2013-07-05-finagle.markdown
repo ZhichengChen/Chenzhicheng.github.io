@@ -723,9 +723,3 @@ Finagle 自动调整线程来保持服务运行的平滑。不管怎样，如果
 - 注意，这里有其它的"Future" 类。不要通过scala.actor.Future 或java.util.concurrent.Future 来迷惑com.twitter.util.Future!
 - 如果你学习了类型系统或者/以及category 理论，你会很高兴的发现flatMap 就想要与monadic 绑定。
 
-{% highlight scala %}
-
-
-{% endhighlight %}
-
-
