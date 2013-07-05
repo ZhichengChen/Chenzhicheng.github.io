@@ -197,7 +197,7 @@ pool-1-thread-2
 </code></pre></div>
 <p>见<a href='/finagle.html'>Scala School 的Finagle</a> 页上有大量的使用Future 的例子，包括一些来组合它们的方式。Effective Scala 里面也有关于<a href='http://twitter.github.com/effectivescala/#Twitter%27s%20standard%20libraries-Futures'>Futures</a> 的描述。</p>
 
-<h2 id='id155'>线程安全问题</h2>
+<h2 id='id45'>线程安全问题</h2>
 <div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>Person</span><span class='o'>(</span><span class='k'>var</span> <span class='n'>name</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
   <span class='k'>def</span> <span class='n'>set</span><span class='o'>(</span><span class='n'>changedName</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
     <span class='n'>name</span> <span class='k'>=</span> <span class='n'>changedName</span>
@@ -210,9 +210,9 @@ pool-1-thread-2
 
 <p>让我们来讨论一下强制把线程保持在一致的数据视图的工具。</p>
 
-<h3 id='id156'>线程池</h3>
+<h3 id='id46'>线程池</h3>
 
-<h4 id='id157'>同步</h4>
+<h4 id='id47'>同步</h4>
 
 <p>Mutexes 提供语义所有权。当你进入到一个mutex 时，你就拥有了它。在JVM 里面使用mutex 的最普遍的方法就是通过一些东西里面的同步。在这里，我们在我们的Person 同步。</p>
 
@@ -247,7 +247,7 @@ pool-1-thread-2
   <span class='o'>}</span>
 <span class='o'>}</span>
 </code></pre></div>
-<h4 id='id158'>这花费什么事情吗？</h4>
+<h4 id='id48'>这花费什么事情吗？</h4>
 
 <p>当你不得不通过方法dispatch 来访问值时，@AtomicReference 是这两个选择里面代价最大的。</p>
 
@@ -285,7 +285,7 @@ pool-1-thread-2
 
 <p>ReadWriteLock 让你接受一个reader 以及写保护锁，reader 锁当写保护锁打开的时候才锁定。</p>
 
-<h2 id='id159'>让我们来构建一个不安全的搜索引擎</h2>
+<h2 id='id49'>让我们来构建一个不安全的搜索引擎</h2>
 
 <p>这是一个简单的不是线程安全的倒排索引。我们的倒排索引映射给定用户的部分名字。</p>
 
@@ -317,7 +317,7 @@ pool-1-thread-2
 </code></pre></div>
 <p>目前我没有处理怎样把用户踢出我们的索引。我们稍后会处理的。</p>
 
-<h2 id='id160'>让我们把它变得更安全</h2>
+<h2 id='id50'>让我们把它变得更安全</h2>
 
 <p>在我们上面的倒序索引里，userMap 不保证是安全的。多个客户端可能尝试在同一时刻添加项目同时有相同的可见的我们在第一个Person 例子里面看到的错误。</p>
 
@@ -371,9 +371,9 @@ pool-1-thread-2
   <span class='k'>def</span> <span class='k'>this</span><span class='o'>()</span> <span class='k'>=</span> <span class='k'>this</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>ConcurrentHashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>User</span><span class='o'>]</span> <span class='n'>asScala</span><span class='o'>)</span>
 <span class='o'>}</span>
 </code></pre></div>
-<h2 id='id161'>让我们来载入我们的倒序索引</h2>
+<h2 id='id51'>让我们来载入我们的倒序索引</h2>
 
-<h3 id='id162'>幼稚的方法</h3>
+<h3 id='id52'>幼稚的方法</h3>
 <div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>UserMaker</span> <span class='o'>{</span>
   <span class='k'>def</span> <span class='n'>makeUser</span><span class='o'>(</span><span class='n'>line</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>line</span><span class='o'>.</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot;,&quot;</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
     <span class='k'>case</span> <span class='nc'>Array</span><span class='o'>(</span><span class='n'>name</span><span class='o'>,</span> <span class='n'>userid</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='nc'>User</span><span class='o'>(</span><span class='n'>name</span><span class='o'>,</span> <span class='n'>userid</span><span class='o'>.</span><span class='n'>trim</span><span class='o'>().</span><span class='n'>toInt</span><span class='o'>)</span>
@@ -392,7 +392,7 @@ pool-1-thread-2
 
 <p>我们不能读取并行上的我文件但是我们可以构建User 然后把它添加到并行（parallel）上。</p>
 
-<h3 id='id163'>一个解决方案：生产者和消费者</h3>
+<h3 id='id53'>一个解决方案：生产者和消费者</h3>
 
 <p>一个同步计算普遍的模式是把生产者和消费者分开，它们之间仅仅通过Queue 通讯。让我们看看搜索引擎索引是怎么工作的。</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>java.util.concurrent.</span><span class='o'>{</span><span class='nc'>BlockingQueue</span><span class='o'>,</span> <span class='nc'>LinkedBlockingQueue</span><span class='o'>}</span>

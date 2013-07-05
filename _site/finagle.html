@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Finagle 的一个介绍</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">Finagle 的一个介绍</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "java.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="searchbird.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p><a href='https://github.com/twitter/finagle'>Finagle</a>是Tweiiter&#8217;s 的RPC 系统。这个<a href='http://engineering.twitter.com/2011/08/finagle-protocol-agnostic-rpc-system.html'>博客</a>介绍了它的动机和它的核心设计理念，<a href='https://github.com/twitter/finagle/blob/master/README.md'>finagle README</a>包含了详细的文档。Finagle 致力于让构建健壮的客户端和服务器更加容易。课程包括</p>
+
+<ul>
+<li>REPL</li>
+
+<li>特性：Sequential 组件，Concurrent 组件，组合的例子：缓存率限制，组合的例子：Thumbnail Fetcher</li>
+
+<li>服务 Service</li>
+
+<li>客户端例子 Client Example</li>
+
+<li>服务器例子 Server Example</li>
+
+<li>过滤器 Filters</li>
+
+<li>Builders</li>
+
+<li>不要Block（除非你以一种正确的方式）</li>
+</ul>
+
+<h2 id='finagle_repl'>Finagle 友好的REPL</h2>
+
+<p>我们将要讨论一些不是标准Scala 的代码。如果你想要使用REPL 学习，你可能会奇怪怎样获得一个像Twitter 的Finagle 那样的Scala 的REPL ，以及获得它们相关的东西。</p>
+
+<p>你一定想要看看<a href='https://github.com/twitter/finagle/'>Finagle 源代码</a></p>
+
+<p>如果你的finagle 路径下有Finagle 源码，你可以在控制台里这样</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>$</span> <span class='n'>cd</span> <span class='n'>finagle</span>
+<span class='n'>$</span> <span class='o'>./</span><span class='n'>sbt</span> <span class='s'>&quot;project finagle-http&quot;</span> <span class='n'>console</span>
+ <span class='o'>...</span><span class='n'>build</span> <span class='n'>output</span><span class='o'>...</span>
+<span class='n'>scala</span><span class='o'>&gt;</span>
+</code></pre></div>
+<h2 id='futures'>Futures</h2>
+
+<p>Finagle 使用com.twitter.util.Future 来编码延迟的操作。Future 处理一个不在可见的值。Finagle 使用Futures 作为它的异步API 的返回值。同步API 在返回前等待结果；异步API 不会这样做。比如，HTTP 每隔半秒请求一些网络上的可能没有返回值的服务。你不希望你的程序每隔半秒就执行一次代码。“Slow” API 可以马上返回一个Future 同时在它的值被解析的时候添加。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>myFuture</span> <span class='k'>=</span> <span class='nc'>MySlowService</span><span class='o'>(</span><span class='n'>request</span><span class='o'>)</span> <span class='c1'>// returns right away</span>
+   <span class='o'>...</span><span class='k'>do</span> <span class='n'>other</span> <span class='n'>things</span><span class='o'>...</span>
+<span class='k'>val</span> <span class='n'>serviceResult</span> <span class='k'>=</span> <span class='n'>myFuture</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span> <span class='c1'>// blocks until service &quot;fills in&quot; myFuture</span>
+</code></pre></div>
+<p>实际上，你不想写发送请求同时在一些语句后面调用myFuture.get 的代码。Future 有一个方法当值可见的时候来注册回调。</p>
+
+<p>如果你使用其它的异步API，可能在你看到”callback“这个单词时会畏惧。你可能会把它和非法的代码流程联系起来，它们在那里调用函数隐藏。但是Futures 可以利用Scala 的头等函数优势，来展现一个更可读的代码流程。你可一在你调用的地方简单的定一个处理函数。</p>
+
+<p>比如，写代码调度request 请求，接着处理响应，你可以把代码放在一起：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>future</span> <span class='k'>=</span> <span class='n'>dispatch</span><span class='o'>(</span><span class='n'>req</span><span class='o'>)</span> <span class='c1'>// returns immediately, but future is &quot;empty&quot;</span>
+<span class='n'>future</span> <span class='n'>onSuccess</span> <span class='o'>{</span> <span class='n'>reply</span> <span class='k'>=&gt;</span> <span class='c1'>// when the future gets &quot;filled&quot;, use its value</span>
+  <span class='n'>println</span><span class='o'>(</span><span class='n'>reply</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>你可以在REPL 里面练习一下Futures。在真实的代码里学习使用它们可是一个糟糕的想法，不过好像可也一学习一下API。当你使用REPL时，Promise 是一个方便的类，它是抽象的Future 类的一个具体的子类。你可以使用它创建还没有值的Funture。</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>import</span> <span class='nn'>com.twitter.util.</span><span class='o'>{</span><span class='nc'>Future</span><span class='o'>,</span><span class='nc'>Promise</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.util.</span><span class='o'>{</span><span class='nc'>Future</span><span class='o'>,</span> <span class='nc'>Promise</span><span class='o'>}</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>f6</span> <span class='k'>=</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='mi'>6</span><span class='o'>)</span> <span class='c1'>// create already-resolved future</span>
+<span class='n'>f6</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>ConstFuture</span><span class='nd'>@c63a8af</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>f6</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+<span class='n'>res0</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='mi'>6</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>fex</span> <span class='k'>=</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>Exception</span><span class='o'>)</span> <span class='c1'>// create resolved sad future</span>
+<span class='n'>fex</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Nothing</span><span class='o'>]</span> <span class='k'>=</span> <span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>ConstFuture</span><span class='k'>@</span><span class='mi'>38</span><span class='n'>ddab20</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>fex</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+<span class='n'>java</span><span class='o'>.</span><span class='n'>lang</span><span class='o'>.</span><span class='nc'>Exception</span>
+  <span class='o'>...</span> <span class='n'>stack</span> <span class='n'>trace</span> <span class='o'>...</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>pr7</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Promise</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='c1'>// create unresolved future</span>
+<span class='n'>pr7</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Promise</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Promise</span><span class='k'>@</span><span class='mi'>1994943491</span><span class='o'>(...)</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>pr7</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+  <span class='o'>...</span><span class='n'>console</span> <span class='n'>hangs</span><span class='o'>,</span> <span class='n'>waiting</span> <span class='k'>for</span> <span class='n'>future</span> <span class='n'>to</span> <span class='n'>resolve</span><span class='o'>...</span>
+<span class='nc'>Ctrl</span><span class='o'>-</span><span class='n'>C</span>
+<span class='nc'>Execution</span> <span class='n'>interrupted</span> <span class='n'>by</span> <span class='n'>signal</span><span class='o'>.</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>pr7</span><span class='o'>.</span><span class='n'>setValue</span><span class='o'>(</span><span class='mi'>7</span><span class='o'>)</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>pr7</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+<span class='n'>res1</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='mi'>7</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span>
+</code></pre></div>
+<p>当你在真实代码里面使用Futures 时，你可能不会调用get；做为代替，你使用callback 函数。get 只是在REPL 修修补补时很可爱。</p>
+
+<h3 id='sequential_'>Sequential 组件</h3>
+
+<p>Futures 组合了<a href='http://twitter.github.io/scala_school/collections.html#combinators'>合量API 的相似</a>(比如，map,flatMap）。一个集合量组合，你重新调用，这让你表达事情就像”我有一个integers 的List以及一个平方函数：我的integers 的平方函数的List 的映射。“这也太整齐了；你可以把组合函数和其它的函数放在一起来有效的定义一个新函数。一个Future 组合让你像这样表达事情”我有一个假想的Future integer 和一个平方函数：一个我假想的integer 的Furure 平方的映射。“</p>
+
+<p>如果你定义了一个异步API，一个请求值进来你的API 返回一个被Future 包围的响应。所以，这些把输入和函数转化成Funtures 的组合真是太特么的有用了：它们帮助你定义对你的异步API 来讲的其它异步APIs。</p>
+
+<p>最重要的Future 组合是flatMap：</p>
+
+<p>def Future[A].flatMap[B](f: A =&gt; Future[B]): Future[B]</p>
+
+<p>flatMap 给两个futures 排序。也就是说，它接受一个Future 以及一个异步函数并且返回另一个Future。 method 的签名说明一个问题：给定一个成功的future 值，函数f 提供下一个Future。flatMap 自动调用f if/when 输入Future 成功的完成。这个操作的结果是另一个Future，它仅仅当所有的futures 都完成的时候才算完成。如果有失败的Future，那么给出的Future 也会是失败的。这个implicit 交叉的错误允许我们仅仅在这些语义显著的地方处理错误。flatMap 是组合这些语义的标准的名字。</p>
+
+<p>如果你有一个Future 并且你想给它的值应用一个异步API。比如，假如你有一个Future[User] 以及需要一个Future[Boolean] 来说明这个封闭的用户是否被禁止了。这里有一个isBanned API 来决定这个用户是否被禁止了，但是它是异步的。你可以使用flatMap：</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>import</span> <span class='nn'>com.twitter.util.</span><span class='o'>{</span><span class='nc'>Future</span><span class='o'>,</span><span class='nc'>Promise</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.util.</span><span class='o'>{</span><span class='nc'>Future</span><span class='o'>,</span> <span class='nc'>Promise</span><span class='o'>}</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>class</span> <span class='nc'>User</span><span class='o'>(</span><span class='n'>n</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span> <span class='k'>val</span> <span class='n'>name</span> <span class='k'>=</span> <span class='n'>n</span> <span class='o'>}</span>
+<span class='n'>defined</span> <span class='k'>class</span> <span class='nc'>User</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>def</span> <span class='n'>isBanned</span><span class='o'>(</span><span class='n'>u</span><span class='k'>:</span> <span class='kt'>User</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='kc'>false</span><span class='o'>)</span> <span class='o'>}</span>
+<span class='n'>isBanned</span><span class='k'>:</span> <span class='o'>(</span><span class='kt'>u:</span> <span class='kt'>User</span><span class='o'>)</span><span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Boolean</span><span class='o'>]</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>pru</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Promise</span><span class='o'>[</span><span class='kt'>User</span><span class='o'>]</span>
+<span class='n'>pru</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Promise</span><span class='o'>[</span><span class='kt'>User</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Promise</span><span class='k'>@</span><span class='mi'>897588993</span><span class='o'>(...)</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>futBan</span> <span class='k'>=</span> <span class='n'>pru</span> <span class='n'>flatMap</span> <span class='n'>isBanned</span> <span class='c1'>// apply isBanned to future</span>
+<span class='n'>futBan</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Boolean</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Promise</span><span class='k'>@</span><span class='mi'>1733189548</span><span class='o'>(...)</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>futBan</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+  <span class='o'>...</span><span class='nc'>REPL</span> <span class='n'>hangs</span><span class='o'>,</span> <span class='n'>futBan</span> <span class='n'>not</span> <span class='n'>resolved</span> <span class='n'>yet</span><span class='o'>...</span>
+<span class='nc'>Ctrl</span><span class='o'>-</span><span class='n'>C</span>
+<span class='nc'>Execution</span> <span class='n'>interrupted</span> <span class='n'>by</span> <span class='n'>signal</span><span class='o'>.</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>pru</span><span class='o'>.</span><span class='n'>setValue</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>User</span><span class='o'>(</span><span class='s'>&quot;prudence&quot;</span><span class='o'>))</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>futBan</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+<span class='n'>res45</span><span class='k'>:</span> <span class='kt'>Boolean</span> <span class='o'>=</span> <span class='kc'>false</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span>
+</code></pre></div>
+<p>同样的，为了给Future 应用一个异步函数，使用map。比如，假设你有一个Future[RawCredentials] 和一个Future[Credentials]。你有一个异步normalize 函数从RawCredentials 到Credentials。你可以使用map：</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>cala</span><span class='o'>&gt;</span> <span class='k'>class</span> <span class='nc'>RawCredentials</span><span class='o'>(</span><span class='n'>u</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>pw</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+     <span class='o'>|</span>   <span class='k'>val</span> <span class='n'>username</span> <span class='k'>=</span> <span class='n'>u</span>
+     <span class='o'>|</span>   <span class='k'>val</span> <span class='n'>password</span> <span class='k'>=</span> <span class='n'>pw</span>
+     <span class='o'>|</span> <span class='o'>}</span>
+<span class='n'>defined</span> <span class='k'>class</span> <span class='nc'>RawCredentials</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>class</span> <span class='nc'>Credentials</span><span class='o'>(</span><span class='n'>u</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>pw</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='o'>{</span>
+     <span class='o'>|</span>   <span class='k'>val</span> <span class='n'>username</span> <span class='k'>=</span> <span class='n'>u</span>
+     <span class='o'>|</span>   <span class='k'>val</span> <span class='n'>password</span> <span class='k'>=</span> <span class='n'>pw</span>
+     <span class='o'>|</span> <span class='o'>}</span>
+<span class='n'>defined</span> <span class='k'>class</span> <span class='nc'>Credentials</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>def</span> <span class='n'>normalize</span><span class='o'>(</span><span class='n'>raw</span><span class='k'>:</span> <span class='kt'>RawCredentials</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+     <span class='o'>|</span>   <span class='k'>new</span> <span class='nc'>Credentials</span><span class='o'>(</span><span class='n'>raw</span><span class='o'>.</span><span class='n'>username</span><span class='o'>.</span><span class='n'>toLowerCase</span><span class='o'>(),</span> <span class='n'>raw</span><span class='o'>.</span><span class='n'>password</span><span class='o'>)</span>
+     <span class='o'>|</span> <span class='o'>}</span>
+<span class='n'>normalize</span><span class='k'>:</span> <span class='o'>(</span><span class='kt'>raw:</span> <span class='kt'>RawCredentials</span><span class='o'>)</span><span class='kt'>Credentials</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>praw</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Promise</span><span class='o'>[</span><span class='kt'>RawCredentials</span><span class='o'>]</span>
+<span class='n'>praw</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Promise</span><span class='o'>[</span><span class='kt'>RawCredentials</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Promise</span><span class='k'>@</span><span class='mi'>1341283926</span><span class='o'>(...)</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>fcred</span> <span class='k'>=</span> <span class='n'>praw</span> <span class='n'>map</span> <span class='n'>normalize</span> <span class='c1'>// apply normalize to future</span>
+<span class='n'>fcred</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Credentials</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Promise</span><span class='k'>@</span><span class='mi'>1309582018</span><span class='o'>(...)</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>fcred</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+   <span class='o'>...</span><span class='nc'>REPL</span> <span class='n'>hangs</span><span class='o'>,</span> <span class='n'>fcred</span> <span class='n'>doesn</span><span class='-Symbol'>&#39;t</span> <span class='n'>have</span> <span class='n'>a</span> <span class='n'>value</span> <span class='n'>yet</span><span class='o'>...</span>
+<span class='nc'>Ctrl</span><span class='o'>-</span><span class='n'>C</span>
+<span class='nc'>Execution</span> <span class='n'>interrupted</span> <span class='n'>by</span> <span class='n'>signal</span><span class='o'>.</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>praw</span><span class='o'>.</span><span class='n'>setValue</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>RawCredentials</span><span class='o'>(</span><span class='s'>&quot;Florence&quot;</span><span class='o'>,</span> <span class='s'>&quot;nightingale&quot;</span><span class='o'>))</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>fcred</span><span class='o'>.</span><span class='n'>get</span><span class='o'>().</span><span class='n'>username</span>
+<span class='n'>res48</span><span class='k'>:</span> <span class='kt'>String</span> <span class='o'>=</span> <span class='n'>florence</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span>
+</code></pre></div>
+<p>Scala 有一个调用flatMap 的简写：for。假如你想通过异步API 认证登录请求同时通过其它API 检查看看用户是不是被禁止了。通过for-comperhensions,我们可以这样写：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def authenticate<span class='o'>(</span>req: LoginRequest<span class='o'>)</span> <span class='o'>=</span> <span class='o'>{</span>
+     |   // TODO: we should check the password
+     |   Future.value<span class='o'>(</span>new User<span class='o'>(</span>req.username<span class='o'>))</span>
+     | <span class='o'>}</span>
+authenticate: <span class='o'>(</span>req: LoginRequest<span class='o'>)</span>com.twitter.util.Future<span class='o'>[</span>User<span class='o'>]</span>
+
+scala&gt; val <span class='nv'>f</span> <span class='o'>=</span> <span class='k'>for</span> <span class='o'>{</span>
+     |  u &lt;- authenticate<span class='o'>(</span>request<span class='o'>)</span>
+     |  b &lt;- isBanned<span class='o'>(</span>u<span class='o'>)</span>
+     | <span class='o'>}</span> yield <span class='o'>(</span>u, b<span class='o'>)</span>
+f: com.twitter.util.Future<span class='o'>[(</span>User, Boolean<span class='o'>)]</span> <span class='o'>=</span> Promise@35785606<span class='o'>(</span>...<span class='o'>)</span>
+
+scala&gt;
+</code></pre></div>
+<p>创造了一个 future f: Future[(User, Boolean)]，含有用户object 和一个Boolean 说明用户的速率是否被限制。注意 sequential 组合 是在这里需要rateLimit 接受一个输出认证的参数。</p>
+
+<h3 id='concurrent_'>Concurrent 组合</h3>
+
+<p>你可能会一次在多于一个服务上抓取数据。比如，如果你写的web 服务上面包含显示的内容和广告，这可能会在一个服务上抓取内容在另一个服务上抓取广告。但是你怎样告诉你的代码等待每一个的回复呢？如果你自己写的话可能你会觉得很奇怪，作为替代，你可以使用concurrent 组合。</p>
+
+<p>Future 提供一些concurrent 组件，它们把一个序列的Future 转换成为一个在有点不同的方式的Future。这样很好，因为这允许你（潜意识的）把一些Funtures 打包成为一个Future。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>object</span> <span class='nc'>Future</span> <span class='o'>{</span>
+  <span class='err'>…</span>
+  <span class='k'>def</span> <span class='n'>collect</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>](</span><span class='n'>fs</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>Future</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]])</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]]</span>
+  <span class='k'>def</span> <span class='n'>join</span><span class='o'>(</span><span class='n'>fs</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>Future</span><span class='o'>[</span><span class='k'>_</span><span class='o'>]])</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Unit</span><span class='o'>]</span>
+  <span class='k'>def</span> <span class='n'>select</span><span class='o'>(</span><span class='n'>fs</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>Future</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]])</span> <span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[(</span><span class='kt'>Try</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]</span>, <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>Future</span><span class='o'>[</span><span class='kt'>A</span><span class='o'>]])]</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>collect 接受一组相同类型的Futures，产生一组这个类型的值的Future。这个future 在所有相关的futures 完成时或者任何一个产生错误时完成。返回一组按照传入的顺序的一组请求。</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>f2</span> <span class='k'>=</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>)</span>
+<span class='n'>f2</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>ConstFuture</span><span class='k'>@</span><span class='mi'>13</span><span class='n'>ecdec0</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>f3</span> <span class='k'>=</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='mi'>3</span><span class='o'>)</span>
+<span class='n'>f3</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='n'>com</span><span class='o'>.</span><span class='n'>twitter</span><span class='o'>.</span><span class='n'>util</span><span class='o'>.</span><span class='nc'>ConstFuture</span><span class='k'>@</span><span class='mi'>263</span><span class='n'>bb672</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>f23</span> <span class='k'>=</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>collect</span><span class='o'>(</span><span class='nc'>Seq</span><span class='o'>(</span><span class='n'>f2</span><span class='o'>,</span> <span class='n'>f3</span><span class='o'>))</span>
+<span class='n'>f23</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]]</span> <span class='k'>=</span> <span class='nc'>Promise</span><span class='k'>@</span><span class='mi'>635209178</span><span class='o'>(...)</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='k'>val</span> <span class='n'>f5</span> <span class='k'>=</span> <span class='n'>f23</span> <span class='n'>map</span> <span class='o'>(</span><span class='k'>_</span><span class='o'>.</span><span class='n'>sum</span><span class='o'>)</span>
+<span class='n'>f5</span><span class='k'>:</span> <span class='kt'>com.twitter.util.Future</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Promise</span><span class='k'>@</span><span class='mi'>1954478838</span><span class='o'>(...)</span>
+
+<span class='n'>scala</span><span class='o'>&gt;</span> <span class='n'>f5</span><span class='o'>.</span><span class='n'>get</span><span class='o'>()</span>
+<span class='n'>res9</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='mi'>5</span>
+</code></pre></div>
+<p>join 接受一组可能是混合类型的Futures ，产生一个Future[Unit]，当所有相关的futures完成时（或者其中有失败的）。这对于说明一组异构操作的完成是很有用的。这对于内容或广告例子可能会是一个很好的解决方案。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>ready</span> <span class='o'>=</span> Future.join<span class='o'>(</span>Seq<span class='o'>(</span>f2, f3<span class='o'>))</span>
+ready: com.twitter.util.Future<span class='o'>[</span>Unit<span class='o'>]</span> <span class='o'>=</span> Promise@699347471<span class='o'>(</span>...<span class='o'>)</span>
+
+scala&gt; ready.get<span class='o'>()</span> // doesn<span class='err'>&#39;</span>t ret value, but I know my futures are <span class='k'>done</span>
+
+scala&gt;
+</code></pre></div>
+<p>select 返回一个Future，当第一个给定的Future 完成时它完成。它返回Future 和一个包含剩余为完成Futures 的序列。（它没有做任何事来取消剩余的Futures。如果你想要等待更多的响应，等呗。如过你想取消剩余的响应，随你便。）</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>pr7</span> <span class='o'>=</span> new Promise<span class='o'>[</span>Int<span class='o'>]</span> // unresolved future
+pr7: com.twitter.util.Promise<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Promise@1608532943<span class='o'>(</span>...<span class='o'>)</span>
+
+scala&gt; val <span class='nv'>sel</span> <span class='o'>=</span> Future.select<span class='o'>(</span>Seq<span class='o'>(</span>f2, pr7<span class='o'>))</span> // <span class='k'>select </span>from 2 futs, one resolved
+sel: com.twitter.util.Future<span class='o'>[</span>...<span class='o'>]</span> <span class='o'>=</span> Promise@1003382737<span class='o'>(</span>...<span class='o'>)</span>
+
+scala&gt; val<span class='o'>(</span><span class='nb'>complete</span>, stragglers<span class='o'>)</span> <span class='o'>=</span> sel.get<span class='o'>()</span>
+<span class='nb'>complete</span>: com.twitter.util.Try<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Return<span class='o'>(</span>2<span class='o'>)</span>
+stragglers: Seq<span class='o'>[</span>...<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>...<span class='o'>)</span>
+
+scala&gt; complete.get<span class='o'>()</span>
+res110: <span class='nv'>Int</span> <span class='o'>=</span> 2
+
+scala&gt; stragglers<span class='o'>(</span>0<span class='o'>)</span>.get<span class='o'>()</span> // our list of not-yet-finished futures has one item
+  ...get<span class='o'>()</span> hangs the REPL because this straggling future is not finished...
+Ctrl-C
+Execution interrupted by signal.
+
+scala&gt; pr7.setValue<span class='o'>(</span>7<span class='o'>)</span>
+
+scala&gt; stragglers<span class='o'>(</span>0<span class='o'>)</span>.get<span class='o'>()</span>
+res113: <span class='nv'>Int</span> <span class='o'>=</span> 7
+
+scala&gt;
+</code></pre></div>
+<h3 id='id56'>组合例子：缓存率限制</h3>
+
+<p>这些组合表达了网络服务的操作类型。这个假想代码执行率限制（为了获得一个本地缓存限制率）同时调度了一个代表用户终端的请求。</p>
+<div class='highlight'><pre><code class='scala'><span class='c1'>// Find out if user is rate-limited. This can be slow; we have to ask</span>
+<span class='c1'>// the remote server that keeps track of who is rate-limited.</span>
+<span class='k'>def</span> <span class='n'>isRateLimited</span><span class='o'>(</span><span class='n'>u</span><span class='k'>:</span> <span class='kt'>User</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Boolean</span><span class='o'>]</span> <span class='k'>=</span> <span class='o'>{</span>
+  <span class='o'>...</span>
+<span class='o'>}</span>
+
+<span class='c1'>// Notice how you can swap this implementation out now with something that might</span>
+<span class='c1'>// implement a different, more restrictive policy.</span>
+
+<span class='c1'>// Check the cache to find out if user is rate-limited. This cache</span>
+<span class='c1'>// implementation is just a Map, and can return a value right way. But we</span>
+<span class='c1'>// return a Future anyhow in case we need to use a slower implementation later.</span>
+<span class='k'>def</span> <span class='n'>isLimitedByCache</span><span class='o'>(</span><span class='n'>u</span><span class='k'>:</span> <span class='kt'>User</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Boolean</span><span class='o'>]</span> <span class='k'>=</span>  <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='n'>limitCache</span><span class='o'>(</span><span class='n'>u</span><span class='o'>))</span>
+
+<span class='c1'>// Update the cache</span>
+<span class='k'>def</span> <span class='n'>setIsLimitedInCache</span><span class='o'>(</span><span class='n'>user</span><span class='k'>:</span> <span class='kt'>User</span><span class='o'>,</span> <span class='n'>v</span><span class='k'>:</span> <span class='kt'>Boolean</span><span class='o'>)</span> <span class='o'>{</span> <span class='n'>limitCache</span><span class='o'>(</span><span class='n'>user</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>v</span> <span class='o'>}</span>
+
+<span class='c1'>// Get a timeline of tweets... unless the user is rate-limited (then throw</span>
+<span class='c1'>// an exception instead)</span>
+<span class='k'>def</span> <span class='n'>getTimeline</span><span class='o'>(</span><span class='n'>cred</span><span class='k'>:</span> <span class='kt'>Credentials</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Timeline</span><span class='o'>]</span> <span class='k'>=</span>
+  <span class='n'>isLimitedByCache</span><span class='o'>(</span><span class='n'>cred</span><span class='o'>.</span><span class='n'>user</span><span class='o'>)</span> <span class='n'>flatMap</span> <span class='o'>{</span>
+    <span class='k'>case</span> <span class='kc'>true</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>Exception</span><span class='o'>(</span><span class='s'>&quot;rate limited&quot;</span><span class='o'>))</span>
+    <span class='k'>case</span> <span class='kc'>false</span> <span class='k'>=&gt;</span>
+
+      <span class='c1'>// First we get auth&#39;d user then we get timeline.</span>
+      <span class='c1'>// Sequential composition of asynchronous APIs: use flatMap</span>
+      <span class='k'>val</span> <span class='n'>timeline</span> <span class='k'>=</span> <span class='n'>auth</span><span class='o'>(</span><span class='n'>cred</span><span class='o'>)</span> <span class='n'>flatMap</span><span class='o'>(</span><span class='n'>getTimeline</span><span class='o'>)</span>
+      <span class='k'>val</span> <span class='n'>limited</span> <span class='k'>=</span> <span class='n'>isRateLimited</span><span class='o'>(</span><span class='n'>cred</span><span class='o'>.</span><span class='n'>user</span><span class='o'>)</span> <span class='n'>onSuccess</span><span class='o'>(</span>
+                                       <span class='n'>setIsLimitedInCache</span><span class='o'>(</span><span class='n'>cred</span><span class='o'>.</span><span class='n'>user</span><span class='o'>,</span> <span class='k'>_</span><span class='o'>))</span>
+
+      <span class='c1'>// &#39;join&#39; concurrently combines differently-typed futures</span>
+      <span class='c1'>// &#39;flatMap&#39; sequentially combines, specifies what to do next</span>
+      <span class='n'>timeline</span> <span class='n'>join</span> <span class='n'>limited</span> <span class='n'>flatMap</span> <span class='o'>{</span>
+        <span class='k'>case</span> <span class='o'>(</span><span class='k'>_</span><span class='o'>,</span> <span class='kc'>true</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>Exception</span><span class='o'>(</span><span class='s'>&quot;rate limited&quot;</span><span class='o'>))</span>
+        <span class='k'>case</span> <span class='o'>(</span><span class='n'>timeline</span><span class='o'>,</span> <span class='k'>_</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='n'>timeline</span><span class='o'>)</span>
+      <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这个假想的例子组合了sequential 和concurrent 组件。注意，除了转换一个限制率回复了一个异常这里没有明确的错误处理。如果任何future 在这里失败了，它自动传播返回的Future。</p>
+
+<h3 id='web_crawlers'>组合的例子：Web Crawlers</h3>
+
+<p>你已经看到了怎样使用含有Futures 的组合，但是可能会想要更多的例子。假设你有一个简单的Internet 的模型。它有一个HTML 页面和图片。页面可以链接到图片或者其它页面。你可以抓取一个页面或者一个图片，但是API 是异步的。这个假的API 调用这些“fetchable”的资源。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>com.twitter.util.</span><span class='o'>{</span><span class='nc'>Try</span><span class='o'>,</span><span class='nc'>Future</span><span class='o'>,</span><span class='nc'>Promise</span><span class='o'>}</span>
+
+<span class='c1'>// a fetchable thing</span>
+<span class='k'>trait</span> <span class='nc'>Resource</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>imageLinks</span><span class='o'>()</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span>
+  <span class='k'>def</span> <span class='n'>links</span><span class='o'>()</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span>
+<span class='o'>}</span>
+
+<span class='c1'>// HTML pages can link to Imgs and to other HTML pages.</span>
+<span class='k'>class</span> <span class='nc'>HTMLPage</span><span class='o'>(</span><span class='k'>val</span> <span class='n'>i</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>],</span> <span class='k'>val</span> <span class='n'>l</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>])</span> <span class='k'>extends</span> <span class='nc'>Resource</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>imageLinks</span><span class='o'>()</span> <span class='k'>=</span> <span class='n'>i</span>
+  <span class='k'>def</span> <span class='n'>links</span> <span class='k'>=</span> <span class='n'>l</span>
+<span class='o'>}</span>
+
+<span class='c1'>// IMGs don&#39;t actually link to anything else</span>
+<span class='k'>class</span> <span class='nc'>Img</span><span class='o'>()</span> <span class='k'>extends</span> <span class='nc'>Resource</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>imageLinks</span><span class='o'>()</span> <span class='k'>=</span> <span class='nc'>Seq</span><span class='o'>()</span>
+  <span class='k'>def</span> <span class='n'>links</span><span class='o'>()</span> <span class='k'>=</span> <span class='nc'>Seq</span><span class='o'>()</span>
+<span class='o'>}</span>
+
+<span class='c1'>// profile.html links to gallery.html and has an image link to portrait.jpg</span>
+<span class='k'>val</span> <span class='n'>profile</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>HTMLPage</span><span class='o'>(</span><span class='nc'>Seq</span><span class='o'>(</span><span class='s'>&quot;portrait.jpg&quot;</span><span class='o'>),</span> <span class='nc'>Seq</span><span class='o'>(</span><span class='s'>&quot;gallery.html&quot;</span><span class='o'>))</span>
+<span class='k'>val</span> <span class='n'>portrait</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Img</span>
+
+<span class='c1'>// gallery.html links to profile.html and two images</span>
+<span class='k'>val</span> <span class='n'>gallery</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>HTMLPage</span><span class='o'>(</span><span class='nc'>Seq</span><span class='o'>(</span><span class='s'>&quot;kitten.jpg&quot;</span><span class='o'>,</span> <span class='s'>&quot;puppy.jpg&quot;</span><span class='o'>),</span> <span class='nc'>Seq</span><span class='o'>(</span><span class='s'>&quot;profile.html&quot;</span><span class='o'>))</span>
+<span class='k'>val</span> <span class='n'>kitten</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Img</span>
+<span class='k'>val</span> <span class='n'>puppy</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Img</span>
+
+<span class='k'>val</span> <span class='n'>internet</span> <span class='k'>=</span> <span class='nc'>Map</span><span class='o'>(</span>
+  <span class='s'>&quot;profile.html&quot;</span> <span class='o'>-&gt;</span> <span class='n'>profile</span><span class='o'>,</span>
+  <span class='s'>&quot;gallery.html&quot;</span> <span class='o'>-&gt;</span> <span class='n'>gallery</span><span class='o'>,</span>
+  <span class='s'>&quot;portrait.jpg&quot;</span> <span class='o'>-&gt;</span> <span class='n'>portrait</span><span class='o'>,</span>
+  <span class='s'>&quot;kitten.jpg&quot;</span> <span class='o'>-&gt;</span> <span class='n'>kitten</span><span class='o'>,</span>
+  <span class='s'>&quot;puppy.jpg&quot;</span> <span class='o'>-&gt;</span> <span class='n'>puppy</span>
+<span class='o'>)</span>
+
+<span class='c1'>// fetch(url) attempts to fetch a resource from our fake internet.</span>
+<span class='c1'>// Its returned Future might contain a Resource or an exception</span>
+<span class='k'>def</span> <span class='n'>fetch</span><span class='o'>(</span><span class='n'>url</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span> <span class='k'>new</span> <span class='nc'>Promise</span><span class='o'>(</span><span class='nc'>Try</span><span class='o'>(</span><span class='n'>internet</span><span class='o'>(</span><span class='n'>url</span><span class='o'>)))</span> <span class='o'>}</span>
+</code></pre></div>
+<h4 id='sequential_composition'>Sequential Composition</h4>
+
+<p>假设你想抓取页面的第一个图片，给定这个页面的URL。假设你正在制作一个用户可以把他们感兴趣的链接发送过来的页面。为了帮助其它人决定这个链接是否值得跟随，你想要显示一个这个链接页面的第一个图片的缩略图。</p>
+
+<p>如果你不了解组合器，你可能仍然在写一个thumbnail-getting 的函数：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>getThumbnail</span><span class='o'>(</span><span class='n'>url</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Resource</span><span class='o'>]={</span>
+  <span class='k'>val</span> <span class='n'>returnVal</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Promise</span><span class='o'>[</span><span class='kt'>Resource</span><span class='o'>]</span>
+
+  <span class='n'>fetch</span><span class='o'>(</span><span class='n'>url</span><span class='o'>)</span> <span class='n'>onSuccess</span> <span class='o'>{</span> <span class='n'>page</span> <span class='k'>=&gt;</span> <span class='c1'>// callback for successful page fetch</span>
+    <span class='n'>fetch</span><span class='o'>(</span><span class='n'>page</span><span class='o'>.</span><span class='n'>imageLinks</span><span class='o'>()(</span><span class='mi'>0</span><span class='o'>))</span> <span class='n'>onSuccess</span> <span class='o'>{</span> <span class='n'>p</span> <span class='k'>=&gt;</span> <span class='c1'>// callback for successful img fetch</span>
+      <span class='n'>returnVal</span><span class='o'>.</span><span class='n'>setValue</span><span class='o'>(</span><span class='n'>p</span><span class='o'>)</span>
+    <span class='o'>}</span> <span class='n'>onFailure</span> <span class='o'>{</span> <span class='n'>exc</span> <span class='k'>=&gt;</span> <span class='c1'>// callback for failed img fetch</span>
+      <span class='n'>returnVal</span><span class='o'>.</span><span class='n'>setException</span><span class='o'>(</span><span class='n'>exc</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span> <span class='n'>onFailure</span> <span class='o'>{</span> <span class='n'>exc</span> <span class='k'>=&gt;</span> <span class='c1'>// callback for failed page fetch</span>
+    <span class='n'>returnVal</span><span class='o'>.</span><span class='n'>setException</span><span class='o'>(</span><span class='n'>exc</span><span class='o'>)</span>
+  <span class='o'>}</span>
+  <span class='n'>returnVal</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这个版本的函数工作良好。大多数的函数由未封装的Futures 组成，接着就把内容放到了另一个Future里面。</p>
+
+<p>我们想先获得一个页面，然后在或者这个页面的图片。如果你想要先得到A 后的到B，这通常意味着sequential 组合。直到我们的B 是异步的，我们想要flatMap：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>getThumbnail</span><span class='o'>(</span><span class='n'>url</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Resource</span><span class='o'>]</span> <span class='k'>=</span>
+  <span class='n'>fetch</span><span class='o'>(</span><span class='n'>url</span><span class='o'>)</span> <span class='n'>flatMap</span> <span class='o'>{</span> <span class='n'>page</span> <span class='k'>=&gt;</span> <span class='n'>fetch</span><span class='o'>(</span><span class='n'>page</span><span class='o'>.</span><span class='n'>imageLinks</span><span class='o'>()(</span><span class='mi'>0</span><span class='o'>))</span> <span class='o'>}</span>
+</code></pre></div>
+<h4 id='with_concurrent_composition'>&#8230;with Concurrent Composition</h4>
+
+<p>获取到了页面的第一个图片了很好，但是也许我们会把所有的图片都获取出来然后让用户选择他们最喜欢的。我们可以写一个for 循环来一个接一个的抓取它们，但是这可能会花费很长时间。我们想要并行的获取它们。如果你想要让事情并行的发生，通常意味着concurrent 组件。所以我们使用Future.collect 来抓取所有的图片：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>getThumbnails</span><span class='o'>(</span><span class='n'>url</span><span class='k'>:</span><span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>Resource</span><span class='o'>]]</span> <span class='k'>=</span>
+  <span class='n'>fetch</span><span class='o'>(</span><span class='n'>url</span><span class='o'>)</span> <span class='n'>flatMap</span> <span class='o'>{</span> <span class='n'>page</span> <span class='k'>=&gt;</span>
+    <span class='nc'>Future</span><span class='o'>.</span><span class='n'>collect</span><span class='o'>(</span>
+      <span class='n'>page</span><span class='o'>.</span><span class='n'>imageLinks</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>u</span> <span class='k'>=&gt;</span> <span class='n'>fetch</span><span class='o'>(</span><span class='n'>u</span><span class='o'>)</span> <span class='o'>}</span>
+    <span class='o'>)</span>
+  <span class='o'>}</span>
+</code></pre></div>
+<p>如果这对你来说很重要，非常好。你可能会担心这一行，page.imageLinks map{ u =&gt; fetch(u) }:它使用了map 之后的事情是map 返回了Future。假设下一个事情不返回一个Future呢？但是注意在map 不是Furure 之前的事情；它是一个collection.collection 返回一个集合量的映射函数；我们使用Future.collect 来把Futures 的集合量收集进集合量里。</p>
+
+<h4 id='concurrent__recursion'>Concurrent + Recursion</h4>
+
+<p>和页面抓取图片不同，我们可能抓取链接到的其它图片。如果我们递归做这件事，我们就做了一个简单的web 蜘蛛。</p>
+<div class='highlight'><pre><code class='scala'><span class='c1'>// Return</span>
+<span class='k'>def</span> <span class='n'>crawl</span><span class='o'>(</span><span class='n'>url</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>Resource</span><span class='o'>]]</span> <span class='k'>=</span>
+  <span class='n'>fetch</span><span class='o'>(</span><span class='n'>url</span><span class='o'>)</span> <span class='n'>flatMap</span> <span class='o'>{</span> <span class='n'>page</span> <span class='k'>=&gt;</span>
+    <span class='nc'>Future</span><span class='o'>.</span><span class='n'>collect</span><span class='o'>(</span>
+      <span class='n'>page</span><span class='o'>.</span><span class='n'>links</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>u</span> <span class='k'>=&gt;</span> <span class='n'>crawl</span><span class='o'>(</span><span class='n'>u</span><span class='o'>)</span> <span class='o'>}</span>
+    <span class='o'>)</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>pps</span> <span class='k'>=&gt;</span> <span class='n'>pps</span><span class='o'>.</span><span class='n'>flatten</span> <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='n'>crawl</span><span class='o'>(</span><span class='s'>&quot;profile.html&quot;</span><span class='o'>)</span>
+   <span class='o'>...</span><span class='n'>hangs</span> <span class='nc'>REPL</span><span class='o'>,</span> <span class='n'>infinite</span> <span class='n'>loop</span><span class='o'>...</span>
+<span class='nc'>Ctrl</span><span class='o'>-</span><span class='n'>C</span>
+<span class='nc'>Execution</span> <span class='n'>interrupted</span> <span class='n'>by</span> <span class='n'>signal</span><span class='o'>.</span>
+
+
+<span class='n'>scala</span><span class='o'>&gt;</span>
+<span class='c1'>// She&#39;s gone rogue, captain! Have to take her out!</span>
+<span class='c1'>// Calling Thread.stop on runaway Thread[Thread-93,5,main] with offending code:</span>
+<span class='c1'>// scala&gt; crawl(&quot;profile.html&quot;)</span>
+</code></pre></div>
+<p>实际上，这个web 蜘蛛没有什么用：我们没有告诉它什么时候停止爬行;它很高兴的重复爬行只是抓取更早一刻的资源。</p>
+
+<h2 id='servide'>Servide</h2>
+
+<p><img alt='Client and Server' src='http://twitter.github.io/scala_school/finagle_client_server.png' /> <img alt='Filter and Server' src='http://twitter.github.io/scala_school/finagle_filter.png' /> 一个Finagle 服务器代表一个处理RPC 的服务，接受请求然后返回一个响应。一个服务是一个函数Req =&gt; Funture[Req] 对于一些请求和响应类型。</p>
+
+<p>abstract class Service[-Req,+Req] extends (Req =&gt; Future[Req])</p>
+
+<p>我们定义了客户端和服务器。</p>
+
+<p>一个Finagle 客户端从网络导入了一个服务。从概念上讲，一个Finagle 客户端有两个部分：</p>
+
+<ul>
+<li>一个使用Service 的函数：派遣一个Req 并处理一个Future[Req]</li>
+
+<li>怎样调度请求的配置;比如，做为请求的api.twitter.com 的80 端口</li>
+</ul>
+
+<p>相似的，一个Finagle 服务向网络导出一个服务。一个服务器有两个部分：</p>
+
+<ul>
+<li>一个实现服务的函数：接受一个Req 返回一个Future[Req]</li>
+
+<li>一个怎样监听导入Reqs 的配置的配置；比如，80 端口上的HTTP 请求。</li>
+</ul>
+
+<p>这个分隔了从数据流怎样通过网络的配置服务逻辑。</p>
+
+<p>我们也谈论了Fiagle 的过滤器。一个站点过滤服务，修改流过它的数据。过滤器很好的和服务组合。比如，如果你有一个比率限制过滤器以及一个tweet-serving 服务，你可以把它们放在一起做为比率限制过滤和tweet-serving 服务。</p>
+
+<h2 id='id57'>客户端</h2>
+
+<p>一个Finagle 客户端导入一个服务。它有一些关于怎样通过网络发送数据的配置。一个简单的HTTP 客户端可能看起来这样。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>org.jboss.netty.handler.codec.http.</span><span class='o'>{</span><span class='nc'>DefaultHttpRequest</span><span class='o'>,</span> <span class='nc'>HttpRequest</span><span class='o'>,</span> <span class='nc'>HttpResponse</span><span class='o'>,</span> <span class='nc'>HttpVersion</span><span class='o'>,</span> <span class='nc'>HttpMethod</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.finagle.Service</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.finagle.builder.ClientBuilder</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.finagle.http.Http</span>
+
+<span class='c1'>// Don&#39;t worry, we discuss this magic &quot;ClientBuilder&quot; later</span>
+<span class='k'>val</span> <span class='n'>client</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>HttpRequest</span>, <span class='kt'>HttpResponse</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>ClientBuilder</span><span class='o'>()</span>
+  <span class='o'>.</span><span class='n'>codec</span><span class='o'>(</span><span class='nc'>Http</span><span class='o'>())</span>
+  <span class='o'>.</span><span class='n'>hosts</span><span class='o'>(</span><span class='s'>&quot;twitter.com:80&quot;</span><span class='o'>)</span> <span class='c1'>// If &gt;1 host, client does simple load-balancing</span>
+  <span class='o'>.</span><span class='n'>hostConnectionLimit</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>build</span><span class='o'>()</span>
+
+<span class='k'>val</span> <span class='n'>req</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>DefaultHttpRequest</span><span class='o'>(</span><span class='nc'>HttpVersion</span><span class='o'>.</span><span class='nc'>HTTP_1_1</span><span class='o'>,</span> <span class='nc'>HttpMethod</span><span class='o'>.</span><span class='nc'>GET</span><span class='o'>,</span> <span class='s'>&quot;/&quot;</span><span class='o'>)</span>
+
+<span class='k'>val</span> <span class='n'>f</span> <span class='k'>=</span> <span class='n'>client</span><span class='o'>(</span><span class='n'>req</span><span class='o'>)</span> <span class='c1'>// Client, send the request</span>
+
+<span class='c1'>// Handle the response:</span>
+<span class='n'>f</span> <span class='n'>onSuccess</span> <span class='o'>{</span> <span class='n'>res</span> <span class='k'>=&gt;</span>
+  <span class='n'>println</span><span class='o'>(</span><span class='s'>&quot;got response&quot;</span><span class='o'>,</span> <span class='n'>res</span><span class='o'>)</span>
+<span class='o'>}</span> <span class='n'>onFailure</span> <span class='o'>{</span> <span class='n'>exc</span> <span class='k'>=&gt;</span>
+  <span class='n'>println</span><span class='o'>(</span><span class='s'>&quot;failed :-(&quot;</span><span class='o'>,</span> <span class='n'>exc</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<h2 id='id58'>服务端</h2>
+
+<p>在服务和关于怎样监听从网络上来的请求方面的服务器定义。一个简单的服务器看起来可能向下面这样：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>com.twitter.finagle.Service</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.finagle.http.Http</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.util.Future</span>
+<span class='k'>import</span> <span class='nn'>org.jboss.netty.handler.codec.http.</span><span class='o'>{</span><span class='nc'>DefaultHttpResponse</span><span class='o'>,</span> <span class='nc'>HttpVersion</span><span class='o'>,</span> <span class='nc'>HttpResponseStatus</span><span class='o'>,</span> <span class='nc'>HttpRequest</span><span class='o'>,</span> <span class='nc'>HttpResponse</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>java.net.</span><span class='o'>{</span><span class='nc'>SocketAddress</span><span class='o'>,</span> <span class='nc'>InetSocketAddress</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.finagle.builder.</span><span class='o'>{</span><span class='nc'>Server</span><span class='o'>,</span> <span class='nc'>ServerBuilder</span><span class='o'>}</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.finagle.builder.ServerBuilder</span>
+
+<span class='c1'>// Define our service: OK response for root, 404 for other paths</span>
+<span class='k'>val</span> <span class='n'>rootService</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>Service</span><span class='o'>[</span><span class='kt'>HttpRequest</span>, <span class='kt'>HttpResponse</span><span class='o'>]</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='k'>:</span> <span class='kt'>HttpRequest</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>r</span> <span class='k'>=</span> <span class='n'>request</span><span class='o'>.</span><span class='n'>getUri</span> <span class='k'>match</span> <span class='o'>{</span>
+      <span class='k'>case</span> <span class='s'>&quot;/&quot;</span> <span class='k'>=&gt;</span> <span class='k'>new</span> <span class='nc'>DefaultHttpResponse</span><span class='o'>(</span><span class='nc'>HttpVersion</span><span class='o'>.</span><span class='nc'>HTTP_1_1</span><span class='o'>,</span> <span class='nc'>HttpResponseStatus</span><span class='o'>.</span><span class='nc'>OK</span><span class='o'>)</span>
+      <span class='k'>case</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='k'>new</span> <span class='nc'>DefaultHttpResponse</span><span class='o'>(</span><span class='nc'>HttpVersion</span><span class='o'>.</span><span class='nc'>HTTP_1_1</span><span class='o'>,</span> <span class='nc'>HttpResponseStatus</span><span class='o'>.</span><span class='nc'>NOT_FOUND</span><span class='o'>)</span>
+    <span class='o'>}</span>
+    <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='n'>r</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+
+<span class='c1'>// Serve our service on a port</span>
+<span class='k'>val</span> <span class='n'>address</span><span class='k'>:</span> <span class='kt'>SocketAddress</span> <span class='o'>=</span> <span class='k'>new</span> <span class='nc'>InetSocketAddress</span><span class='o'>(</span><span class='mi'>10000</span><span class='o'>)</span>
+<span class='k'>val</span> <span class='n'>server</span><span class='k'>:</span> <span class='kt'>Server</span> <span class='o'>=</span> <span class='nc'>ServerBuilder</span><span class='o'>()</span>
+  <span class='o'>.</span><span class='n'>codec</span><span class='o'>(</span><span class='nc'>Http</span><span class='o'>())</span>
+  <span class='o'>.</span><span class='n'>bindTo</span><span class='o'>(</span><span class='n'>address</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>name</span><span class='o'>(</span><span class='s'>&quot;HttpServer&quot;</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>build</span><span class='o'>(</span><span class='n'>rootService</span><span class='o'>)</span>
+</code></pre></div>
+<p>即使我们在这些例子里没有用到，强制性名字对剖析和调试还是很有用的。</p>
+
+<h2 id='filters'>Filters</h2>
+
+<p>Filter 是一个转换服务。它们可以提供服务生成函数。比如，你可能有一些应该支持限制率的服务；你可以写一个限制率过滤器并把它应用到你所有的服务。Filter 对分解不同阶段的服务也是不错的。</p>
+
+<p>一个简单的代理可能看起来如下：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>MyService</span><span class='o'>(</span><span class='n'>client</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>..</span><span class='o'>])</span> <span class='k'>extends</span> <span class='nc'>Service</span><span class='o'>[</span><span class='kt'>HttpRequest</span>, <span class='kt'>HttpResponse</span><span class='o'>]</span>
+<span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='k'>:</span> <span class='kt'>HttpRequest</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>client</span><span class='o'>(</span><span class='n'>rewriteReq</span><span class='o'>(</span><span class='n'>request</span><span class='o'>))</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>res</span> <span class='k'>=&gt;</span>
+      <span class='n'>rewriteRes</span><span class='o'>(</span><span class='n'>res</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>rewriteReq 和 rewriteRes 可以提供协议转换，比如。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>abstract</span> <span class='k'>class</span> <span class='nc'>Filter</span><span class='o'>[</span><span class='kt'>-ReqIn</span>, <span class='kt'>+RepOut</span>, <span class='kt'>+ReqOut</span>, <span class='kt'>-RepIn</span><span class='o'>]</span>
+  <span class='nc'>extends</span> <span class='o'>((</span><span class='nc'>ReqIn</span><span class='o'>,</span> <span class='nc'>Service</span><span class='o'>[</span><span class='kt'>ReqOut</span>, <span class='kt'>RepIn</span><span class='o'>])</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>[</span><span class='kt'>RepOut</span><span class='o'>])</span>
+</code></pre></div>
+<p>这样的视图看起来能更好：</p>
+<div class='highlight'><pre><code class='scala'>    <span class='o'>((</span><span class='nc'>ReqIn</span><span class='o'>,</span> <span class='nc'>Service</span><span class='o'>[</span><span class='kt'>ReqOut</span>, <span class='kt'>RepIn</span><span class='o'>])</span>
+         <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>[</span><span class='kt'>RepOut</span><span class='o'>])</span>
+
+
+           <span class='o'>(*</span>   <span class='nc'>Service</span>   <span class='o'>*)</span>
+<span class='o'>[</span><span class='kt'>ReqIn</span> <span class='kt'>-&gt;</span> <span class='o'>(</span><span class='kt'>ReqOut</span> <span class='kt'>-&gt;</span> <span class='kt'>RepIn</span><span class='o'>)</span> <span class='kt'>-&gt;</span> <span class='kt'>RepOut</span><span class='o'>]</span>
+</code></pre></div>
+<p>这里是一个提供服务超时机制的过滤器。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>TimeoutFilter</span><span class='o'>[</span><span class='kt'>Req</span>, <span class='kt'>Rep</span><span class='o'>](</span>
+  <span class='n'>timeout</span><span class='k'>:</span> <span class='kt'>Duration</span><span class='o'>,</span>
+  <span class='n'>exception</span><span class='k'>:</span> <span class='kt'>RequestTimeoutException</span><span class='o'>,</span>
+  <span class='n'>timer</span><span class='k'>:</span> <span class='kt'>Timer</span><span class='o'>)</span>
+  <span class='k'>extends</span> <span class='nc'>Filter</span><span class='o'>[</span><span class='kt'>Req</span>, <span class='kt'>Rep</span>, <span class='kt'>Req</span>, <span class='kt'>Rep</span><span class='o'>]</span>
+<span class='o'>{</span>
+  <span class='k'>def</span> <span class='k'>this</span><span class='o'>(</span><span class='n'>timeout</span><span class='k'>:</span> <span class='kt'>Duration</span><span class='o'>,</span> <span class='n'>timer</span><span class='k'>:</span> <span class='kt'>Timer</span><span class='o'>)</span> <span class='k'>=</span>
+    <span class='k'>this</span><span class='o'>(</span><span class='n'>timeout</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>IndividualRequestTimeoutException</span><span class='o'>(</span><span class='n'>timeout</span><span class='o'>),</span> <span class='n'>timer</span><span class='o'>)</span>
+
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>request</span><span class='k'>:</span> <span class='kt'>Req</span><span class='o'>,</span> <span class='n'>service</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>Req</span>, <span class='kt'>Rep</span><span class='o'>])</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Rep</span><span class='o'>]</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>res</span> <span class='k'>=</span> <span class='n'>service</span><span class='o'>(</span><span class='n'>request</span><span class='o'>)</span>
+
+    <span class='n'>res</span><span class='o'>.</span><span class='n'>within</span><span class='o'>(</span><span class='n'>timer</span><span class='o'>,</span> <span class='n'>timeout</span><span class='o'>)</span> <span class='n'>rescue</span> <span class='o'>{</span>
+      <span class='k'>case</span> <span class='k'>_:</span> <span class='kt'>java.util.concurrent.TimeoutException</span> <span class='o'>=&gt;</span>
+        <span class='n'>res</span><span class='o'>.</span><span class='n'>cancel</span><span class='o'>()</span>
+        <span class='nc'>Trace</span><span class='o'>.</span><span class='n'>record</span><span class='o'>(</span><span class='nc'>TimeoutFilter</span><span class='o'>.</span><span class='nc'>TimeoutAnnotation</span><span class='o'>)</span>
+        <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span><span class='n'>exception</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这个例子展示了你可能提供认证（通过一个认证服务）为了把Service[AuthHttpReq,HttpRep] 转换成为Service[HttpReq,HttpRep]。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>RequireAuthentication</span><span class='o'>(</span><span class='n'>authService</span><span class='k'>:</span> <span class='kt'>AuthService</span><span class='o'>)</span>
+  <span class='k'>extends</span> <span class='nc'>Filter</span><span class='o'>[</span><span class='kt'>HttpReq</span>, <span class='kt'>HttpRep</span>, <span class='kt'>AuthHttpReq</span>, <span class='kt'>HttpRep</span><span class='o'>]</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span>
+    <span class='n'>req</span><span class='k'>:</span> <span class='kt'>HttpReq</span><span class='o'>,</span>
+    <span class='n'>service</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>AuthHttpReq</span>, <span class='kt'>HttpRep</span><span class='o'>]</span>
+  <span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>authService</span><span class='o'>.</span><span class='n'>auth</span><span class='o'>(</span><span class='n'>req</span><span class='o'>)</span> <span class='n'>flatMap</span> <span class='o'>{</span>
+      <span class='k'>case</span> <span class='nc'>AuthResult</span><span class='o'>(</span><span class='nc'>AuthResultCode</span><span class='o'>.</span><span class='nc'>OK</span><span class='o'>,</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>passport</span><span class='o'>),</span> <span class='k'>_</span><span class='o'>)</span> <span class='k'>=&gt;</span>
+        <span class='n'>service</span><span class='o'>(</span><span class='nc'>AuthHttpReq</span><span class='o'>(</span><span class='n'>req</span><span class='o'>,</span> <span class='n'>passport</span><span class='o'>))</span>
+      <span class='k'>case</span> <span class='n'>ar</span><span class='k'>:</span> <span class='kt'>AuthResult</span> <span class='o'>=&gt;</span>
+        <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span>
+          <span class='k'>new</span> <span class='nc'>RequestUnauthenticated</span><span class='o'>(</span><span class='n'>ar</span><span class='o'>.</span><span class='n'>resultCode</span><span class='o'>))</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>用这种方式使用过滤器有很多好处。它帮助你保持在一个地方的“认证逻辑”。拥有一个独立的类型授权的请求，使得它更容易保证程序安全性的原因。</p>
+
+<p>过滤器可以和andThen 组合在一起。提供一个Service 作为一个参数，andThen 创造一个（过滤器）服务（提供次类型的例子）</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>authFilter</span><span class='k'>:</span> <span class='kt'>Filter</span><span class='o'>[</span><span class='kt'>HttpReq</span>, <span class='kt'>HttpRep</span>, <span class='kt'>AuthHttpReq</span>, <span class='kt'>HttpRep</span><span class='o'>]</span>
+<span class='k'>val</span> <span class='n'>timeoutfilter</span><span class='o'>[</span><span class='kt'>Req</span>, <span class='kt'>Rep</span><span class='o'>]</span><span class='k'>:</span> <span class='kt'>Filter</span><span class='o'>[</span><span class='kt'>Req</span>, <span class='kt'>Rep</span>, <span class='kt'>Req</span>, <span class='kt'>Rep</span><span class='o'>]</span>
+<span class='k'>val</span> <span class='n'>serviceRequiringAuth</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>AuthHttpReq</span>, <span class='kt'>HttpRep</span><span class='o'>]</span>
+
+<span class='k'>val</span> <span class='n'>authenticateAndTimedOut</span><span class='k'>:</span> <span class='kt'>Filter</span><span class='o'>[</span><span class='kt'>HttpReq</span>, <span class='kt'>HttpRep</span>, <span class='kt'>AuthHttpReq</span>, <span class='kt'>HttpRep</span><span class='o'>]</span> <span class='k'>=</span>
+  <span class='n'>authFilter</span> <span class='n'>andThen</span> <span class='n'>timeoutFilter</span>
+
+<span class='k'>val</span> <span class='n'>authenticatedTimedOutService</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>HttpReq</span>, <span class='kt'>HttpRep</span><span class='o'>]</span> <span class='k'>=</span>
+  <span class='n'>authenticateAndTimedOut</span> <span class='n'>andThen</span> <span class='n'>serviceRequiringAuth</span>
+</code></pre></div>
+<h2 id='builders'>Builders</h2>
+
+<p>Builders 把所有的东西都放在一起。给定一组参数，ClientBuilder 会产生一个服务实例，一个ServerBuilder 接受一个Service 实例然后在分派传入到它的请求。为了确定Service 的类型，我们必须提供一个Codec。Codec 提供相关的协议实现（比如，HTTP，thrift，memcached）。Buildeers 通常都有很多参数，需要的却很少。</p>
+
+<p>这是一个ClientBuilder 注解的例子（类型提供illustration）：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>client</span><span class='k'>:</span> <span class='kt'>Service</span><span class='o'>[</span><span class='kt'>HttpRequest</span>, <span class='kt'>HttpResponse</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>ClientBuilder</span><span class='o'>()</span>
+  <span class='o'>.</span><span class='n'>codec</span><span class='o'>(</span><span class='nc'>Http</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>hosts</span><span class='o'>(</span><span class='s'>&quot;host1.twitter.com:10000,host2.twitter.com:10001,host3.twitter.com:10003&quot;</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>hostConnectionLimit</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>tcpConnectTimeout</span><span class='o'>(</span><span class='mf'>1.</span><span class='n'>second</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>retries</span><span class='o'>(</span><span class='mi'>2</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>reportTo</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>OstrichStatsReceiver</span><span class='o'>)</span>
+  <span class='o'>.</span><span class='n'>build</span><span class='o'>()</span>
+</code></pre></div>
+<p>这构建了一个通过三个给定的hosts 负载均衡的客户端，构建时每个host 不止有一个连接，仅当两个失败后才放弃。统计被报告在<a href='https://github.com/twitter/ostrich'>ostrich</a>。需要下面的构建选项，（它们代表静态强制执行）：hosts 或者cluster，codec 以及hostConnectionLimit。</p>
+
+<p>类似的，你可以使用一个ServerBuilder 来让你的服务监听输入的请求：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>service</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>MyService</span><span class='o'>(...)</span> <span class='c1'>// construct instance of your Finagle service</span>
+<span class='k'>var</span> <span class='n'>filter</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>MyFilter</span><span class='o'>(...)</span> <span class='c1'>// and maybe some filters</span>
+<span class='k'>var</span> <span class='n'>filteredServce</span> <span class='k'>=</span> <span class='n'>filter</span> <span class='n'>andThen</span> <span class='n'>service</span>
+<span class='k'>val</span>  <span class='n'>server</span> <span class='k'>=</span> <span class='nc'>ServerBuilder</span><span class='o'>()</span>
+  <span class='o'>.</span><span class='n'>bindTo</span><span class='o'>(</span><span class='k'>new</span> <span class='nc'>InetSocketAddress</span><span class='o'>(</span><span class='n'>port</span><span class='o'>))</span>
+  <span class='o'>.</span><span class='n'>codec</span><span class='o'>(</span><span class='nc'>ThriftServerFramedCodec</span><span class='o'>())</span>
+  <span class='o'>.</span><span class='n'>name</span><span class='o'>(</span><span class='s'>&quot;my filtered service&quot;</span><span class='o'>)</span>
+<span class='c1'>//  .hostConnectionMaxLifeTime(5.minutes)</span>
+<span class='c1'>//  .readTimeout(2.minutes)</span>
+  <span class='o'>.</span><span class='n'>build</span><span class='o'>(</span><span class='n'>filteredService</span><span class='o'>)</span>
+</code></pre></div>
+<p>这将开始服务，端对端的，一个通过分派请求来节约服务开销的服务。如果我们取消掉hostConnectionMaxLifeTime 行的注释，每一个链接会允许在保持联通。如果我们取消掉 readTimeout 行的注释，我们需要每隔2分钟发送一个请求。需要的ServerBuiler 选项是：name，bindTo 和 codec。</p>
+
+<h2 id='block_'>不要Block 除非你用正确的方式来处理它</h2>
+
+<p>Finagle 自动调整线程来保持服务运行的平滑。不管怎样，如果你服务block，它可以block 所有的Finagle 线程。</p>
+
+<ul>
+<li>
+<p>如果你的代码调用了blocking 操作（apply 或者 get），使用了<a href='https://github.com/twitter/finagle#Using%20Future%20Pools'>Future 池</a>包裹了blocking code。这就会在它自己的线程池里面运行blocking 操作。</p>
+</li>
+
+<li>
+<p>如果你的代码使用了sequential 组件，不要担心它会在这些Futures 上面blocking。</p>
+</li>
+
+<li>
+<p>注意，这里有其它的&#8221;Future&#8221; 类。不要通过scala.actor.Future 或java.util.concurrent.Future 来迷惑com.twitter.util.Future!</p>
+</li>
+
+<li>
+<p>如果你学习了类型系统或者/以及category 理论，你会很高兴的发现flatMap 就想要与monadic 绑定。</p>
+</li>
+</ul>
+<div class='highlight'><pre><code class='scala'>
+</code></pre></div>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>

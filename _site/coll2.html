@@ -126,7 +126,7 @@ res4: scala.collection.immutable.Map<span class='o'>[</span>Char,Int<span class=
 
 <p>见<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/Map.html'>API 文档</a></p>
 
-<h2 id='id150'>方法</h2>
+<h2 id='id40'>方法</h2>
 
 <h3 id='traversable'>Traversable</h3>
 
@@ -210,7 +210,7 @@ res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int
 <div class='highlight'><pre><code class='bash'>scala&gt; Map<span class='o'>((</span><span class='s2'>&quot;a&quot;</span>, 2<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;b&quot;</span>, 2<span class='o'>))</span>
 res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>a,2<span class='o'>)</span>, <span class='o'>(</span>b,2<span class='o'>))</span>
 </code></pre></div>
-<h6 id='id151'>题外话</h6>
+<h6 id='id41'>题外话</h6>
 
 <p>-&gt; 是什么意思？这不是明确的语法，这是一个返回元组的方法。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; <span class='s2'>&quot;a&quot;</span> -&gt; 2
@@ -226,7 +226,7 @@ res1: <span class='o'>(</span>java.lang.String, Int<span class='o'>)</span> <spa
 <div class='highlight'><pre><code class='bash'>scala&gt; Map.empty ++ List<span class='o'>((</span><span class='s2'>&quot;a&quot;</span>, 1<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;b&quot;</span>, 2<span class='o'>)</span>, <span class='o'>(</span><span class='s2'>&quot;c&quot;</span>, 3<span class='o'>))</span>
 res0: scala.collection.immutable.Map<span class='o'>[</span>java.lang.String,Int<span class='o'>]</span> <span class='o'>=</span> Map<span class='o'>((</span>a,1<span class='o'>)</span>, <span class='o'>(</span>b,2<span class='o'>)</span>, <span class='o'>(</span>c,3<span class='o'>))</span>
 </code></pre></div>
-<h3 id='id152'>通常使用的子类</h3>
+<h3 id='id42'>通常使用的子类</h3>
 
 <p><strong>HashSet 和 HashMap</strong> 快速寻找，这些集合的最普遍的使用方式。<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html'>HashSet API</a>,<a href='http://www.scala-lang.org/api/current/scala/collection/immutable/HashSet.html'>HashMap API</a></p>
 
@@ -268,7 +268,7 @@ res2: Seq<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</
 <div class='highlight'><pre><code class='scala'><span class='n'>scala</span><span class='o'>&gt;</span> <span class='nc'>Set</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>)</span>
 <span class='n'>res31</span><span class='k'>:</span> <span class='kt'>scala.collection.immutable.Set</span><span class='o'>[</span><span class='kt'>Int</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Set</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>,</span> <span class='mi'>2</span><span class='o'>)</span>
 </code></pre></div>
-<h3 id='id153'>一些描述接口</h3>
+<h3 id='id43'>一些描述接口</h3>
 
 <p><strong>IndexedSeq</strong> 快速随机访问元素以及快速长度操作。<a href='http://www.scala-lang.org/api/current/scala/collection/IndexedSeq.html'>API doc</a></p>
 

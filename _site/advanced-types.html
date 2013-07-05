@@ -91,7 +91,7 @@ scala&gt; <span class='o'>(</span>new Container<span class='o'>[</span>Float<spa
        <span class='o'>(</span>new Container<span class='o'>[</span>Float<span class='o'>])</span>.addIt<span class='o'>(</span>123.2<span class='o'>)</span>
         ^
 </code></pre></div>
-<h2 id='id136'>其它类型边界</h2>
+<h2 id='id26'>其它类型边界</h2>
 
 <p>方法可以通过implicit 参数生效更多复杂的类型参数。比如，Lift 支持对数字进行sum 当然其它类型不可以。唉，Scala 的数字类型并没有调用超类共享，因此我们不能仅仅说T&lt;: Number。相反，为了让它可以工作，Scala 的数学类库<a href='http://www.azavea.com/blogs/labs/2011/06/scalas-numeric-type-class-pt-1/'>为合适的类型定义了一个ieimplicit 的Numberic[T]</a> 。然后List 使用它来定义：</p>
 <div class='highlight'><pre><code class='scala'><span class='n'>sum</span><span class='o'>[</span><span class='kt'>B</span> <span class='k'>&gt;:</span> <span class='kt'>A</span><span class='o'>](</span><span class='k'>implicit</span> <span class='n'>num</span><span class='k'>:</span> <span class='kt'>Numeric</span><span class='o'>[</span><span class='kt'>B</span><span class='o'>])</span><span class='k'>:</span><span class='kt'>B</span>
@@ -256,7 +256,7 @@ res0: <span class='nv'>Int</span> <span class='o'>=</span> 133
 </code></pre></div>
 <p>这在很多情形里确实很好，但是却是用了反射执行，因此有一些性能损失（so be performance-aware）!</p>
 
-<h2 id='id137'>抽象类型成员</h2>
+<h2 id='id27'>抽象类型成员</h2>
 
 <p>在接口里，你可以抽象类型成员。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; trait Foo <span class='o'>{</span> <span class='nb'>type </span>A: val x: A; def getX: <span class='nv'>A</span> <span class='o'>=</span> x <span class='o'>}</span>
@@ -277,7 +277,7 @@ defined trait Foo
 scala&gt; val x: Foo<span class='o'>[</span>List<span class='o'>]</span><span class='c'>#t[Int] = List(1)</span>
 x: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>1<span class='o'>)</span>
 </code></pre></div>
-<h2 id='id138'>类型涂改&amp;体现</h2>
+<h2 id='id28'>类型涂改&amp;体现</h2>
 
 <p>众所周知，由于类型涂改类型信息在编译时会丢失。Scala 的特性Manifest，允许我们可选的覆盖类型信息。Manifests 是提供的一个implicit 值，在编译需要时生成。</p>
 <div class='highlight'><pre><code class='bash'>scala&gt; class MakeFoo<span class='o'>[</span>A<span class='o'>](</span>implicit manifest: Manifest<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>{</span>def make: <span class='nv'>A</span> <span class='o'>=</span> manifest.erasure.newInstance.asInstanceOf<span class='o'>[</span>A<span class='o'>]</span> <span class='o'>}</span>
