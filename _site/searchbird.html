@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>SearchBird</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">SearchBird</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "finagle.html" ><<上一节</a>
+                </li>
+                
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>我们将要使用Scala 以及我们之前讨论的Finagle 框架来构建一个简单的分布式搜索引擎。</p>
+
+<h2 id='id251'>设计目标：一个大图片</h2>
+
+<p>广泛来讲，我们的设计目标包括抽象化（在没有知道所有的内部详细信息的时候使用resulting 系统的能力）；模块化（可以把系统分成更小，更简单的小片，使它能够更容易明白或者更容易替换成其它的小块的能力）;以及稳定性（以一种简单的方法增加系统容量的能力）。</p>
+
+<p>我们将要描述的系统有三个小片：（1）发送请求的客户端（2）给请求发送响应的服务器（3）打包这些通讯的传输机制。通常客户端和服务器应该位于不容的机器上，它们通过网络上一个特殊的数字端口来通讯。但是在这个例子里它们会在同一台机器上（仍然使用端口通讯）。在我们的例子里，客户端和服务器会用Scala 来写，传输会使用Thrift 来处理。这个教程的原始意图是展示一个简单的可扩展的提供稳定性能的客户端和服务器。</p>
+
+<h2 id='id252'>探索默认的启动工程</h2>
+
+<p>首先使用scala-bootstrapper 创建一个骨架工程（“Searchbird”）。它创建一个简单的基于Finagle 的Scala 服务，它导出一个内存键值对存储。我们会通过支持搜索值来扩展它，接着通过一些处理来支持搜索多个内存存储来扩展它。</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>mkdir searchbird ; <span class='nb'>cd </span>searchbird
+<span class='nv'>$ </span>scala-bootstrapper searchbird
+writing build.sbt
+writing config/development.scala
+writing config/production.scala
+writing config/staging.scala
+writing config/test.scala
+writing console
+writing Gemfile
+writing project/plugins.sbt
+writing README.md
+writing sbt
+writing src/main/scala/com/twitter/searchbird/SearchbirdConsoleClient.scala
+writing src/main/scala/com/twitter/searchbird/SearchbirdServiceImpl.scala
+writing src/main/scala/com/twitter/searchbird/config/SearchbirdServiceConfig.scala
+writing src/main/scala/com/twitter/searchbird/Main.scala
+writing src/main/thrift/searchbird.thrift
+writing src/scripts/searchbird.sh
+writing src/scripts/config.sh
+writing src/scripts/devel.sh
+writing src/scripts/server.sh
+writing src/scripts/service.sh
+writing src/test/scala/com/twitter/searchbird/AbstractSpec.scala
+writing src/test/scala/com/twitter/searchbird/SearchbirdServiceSpec.scala
+writing TUTORIAL.md
+</code></pre></div>
+<p>我们首先来看看为我们创建的默认的scala-bootstrapper 工程。它是一个模板。你最终会取代其中的大部分，但是它是一个很方便的脚手架。它定义一个简单的（但是很完整）键值存储。配置，一个thrift 接口，统计出口以及日志都包括在内。</p>
+
+<p>在我们看代码之前，我们将要运行一个客户端和服务器来看看它是怎么工作的。这里是我们将要构建的：</p>
+
+<p><img src='http://twitter.github.io/scala_school/searchbird-1.svg' alt='Searchbird implementation,revision 1' /></p>
+
+<p>这里是我们服务导出的接口。由于Searchbird 服务是一个Thrift，服务（更像我们的服务），它的内部接口定义在Thrift IDL（“接口描述语言”）。</p>
+
+<p><strong>src/main/thrift/searchbird.thrift</strong></p>
+<div class='highlight'><pre><code class='scala'><span class='n'>service</span> <span class='nc'>SearchbirdService</span> <span class='o'>{</span>
+  <span class='n'>string</span> <span class='n'>get</span><span class='o'>(</span><span class='mi'>1</span><span class='k'>:</span> <span class='kt'>string</span> <span class='kt'>key</span><span class='o'>)</span> <span class='n'>throws</span><span class='o'>(</span><span class='mi'>1</span><span class='k'>:</span> <span class='kt'>SearchbirdException</span> <span class='kt'>ex</span><span class='o'>)</span>
+
+  <span class='n'>void</span> <span class='n'>put</span><span class='o'>(</span><span class='mi'>1</span><span class='k'>:</span> <span class='kt'>string</span> <span class='kt'>key</span><span class='o'>,</span> <span class='mi'>2</span><span class='k'>:</span> <span class='kt'>string</span> <span class='kt'>value</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这很简单：我们的服务SearchbirdService 导出了两个RPC 方法，get 和put。它们包含一个简单的键值存储接口。</p>
+
+<p>想在让我们运行默认的服务并且用一个客户端来连接这个服务，接着通过这个接口来探索他们。打开两个窗口，一个是服务器一个是客户端。</p>
+
+<p>在第一个窗口里，在交互模式下运行sbt(在命令行里运行 ./sbt)接着在sbt 里面构建运行工程。在Main.scala 里运行main。</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>./sbt
+...
+&gt; compile
+&gt; run -f config/development.scala
+...
+<span class='o'>[</span>info<span class='o'>]</span> Running com.twitter.searchbird.Main -f config/development.scala
+</code></pre></div>
+<p>配置文件（development.scala）初始化一个新的服务，并在我们的local 机器上的9999 端口暴漏我们的服务。客户端可以通过连接9999 端口和这个服务通讯。</p>
+
+<p>现在我们将要使用提供的终端shell 脚本来运行一个客户端，它初始化一个SearchbirdConsoleClient 实例（从SearchbirdConsoleClient.scala）。在另一个窗口里运行这个脚本：</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>./console 127.0.0.1 9999
+<span class='o'>[</span>info<span class='o'>]</span> Running com.twitter.searchbird.SearchbirdConsoleClient 127.0.0.1 9999
+<span class='s1'>&#39;client&#39;</span> is bound to your thrift client.
+
+finagle-client&gt; 
+</code></pre></div>
+<p>客户端object client 现在在我们的local 电脑上连接了9999 端口，可以通过之前我们开始的那个端口和服务会话。因此让我们发送一些请求：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; client.put<span class='o'>(</span><span class='s2'>&quot;marius&quot;</span>, <span class='s2'>&quot;Marius Eriksen&quot;</span><span class='o'>)</span>
+res0: ...
+
+scala&gt; client.put<span class='o'>(</span><span class='s2'>&quot;stevej&quot;</span>, <span class='s2'>&quot;Steve Jenson&quot;</span><span class='o'>)</span>
+res1: ...
+
+scala&gt; client.get<span class='o'>(</span><span class='s2'>&quot;marius&quot;</span><span class='o'>)</span>
+res2: com.twitter.util.Future<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ...
+
+scala&gt; client.get<span class='o'>(</span><span class='s2'>&quot;marius&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res3: <span class='nv'>String</span> <span class='o'>=</span> Marius Eriksen
+</code></pre></div>
+<p>(第二个get() 可以解析Future 它在值准备好之前一直阻塞返回client.get() 类型。)</p>
+
+<p>服务器还导出运行统计（配置文件指定这些可以在9900 端口里找到）。不管是个人检查服务器还是作为全局服务的汇总统计这都很方便。打开第三个窗口检查如下统计：</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>curl localhost:9900/stats.txt
+counters:
+  Searchbird/connects: 1
+  Searchbird/received_bytes: 264
+  Searchbird/requests: 3
+  Searchbird/sent_bytes: 128
+  Searchbird/success: 3
+  jvm_gc_ConcurrentMarkSweep_cycles: 1
+  jvm_gc_ConcurrentMarkSweep_msec: 15
+  jvm_gc_ParNew_cycles: 24
+  jvm_gc_ParNew_msec: 191
+  jvm_gc_cycles: 25
+  jvm_gc_msec: 206
+gauges:
+  Searchbird/connections: 1
+  Searchbird/pending: 0
+  jvm_fd_count: 135
+  jvm_fd_limit: 10240
+  jvm_heap_committed: 85000192
+  jvm_heap_max: 530186240
+  jvm_heap_used: 54778640
+  jvm_nonheap_committed: 89657344
+  jvm_nonheap_max: 136314880
+  jvm_nonheap_used: 66238144
+  jvm_num_cpus: 4
+  jvm_post_gc_CMS_Old_Gen_used: 36490088
+  jvm_post_gc_CMS_Perm_Gen_used: 54718880
+  jvm_post_gc_Par_Eden_Space_used: 0
+  jvm_post_gc_Par_Survivor_Space_used: 1315280
+  jvm_post_gc_used: 92524248
+  jvm_start_time: 1345072684280
+  jvm_thread_count: 16
+  jvm_thread_daemon_count: 7
+  jvm_thread_peak_count: 16
+  jvm_uptime: 1671792
+labels:
+metrics:
+  Searchbird/handletime_us: <span class='o'>(</span><span class='nv'>average</span><span class='o'>=</span>9598, <span class='nv'>count</span><span class='o'>=</span>4, <span class='nv'>maximum</span><span class='o'>=</span>19138, <span class='nv'>minimum</span><span class='o'>=</span>637, <span class='nv'>p25</span><span class='o'>=</span>637, <span class='nv'>p50</span><span class='o'>=</span>4265, <span class='nv'>p75</span><span class='o'>=</span>14175, <span class='nv'>p90</span><span class='o'>=</span>19138, <span class='nv'>p95</span><span class='o'>=</span>19138, <span class='nv'>p99</span><span class='o'>=</span>19138, <span class='nv'>p999</span><span class='o'>=</span>19138, <span class='nv'>p9999</span><span class='o'>=</span>19138, <span class='nv'>sum</span><span class='o'>=</span>38393<span class='o'>)</span>
+  Searchbird/request_latency_ms: <span class='o'>(</span><span class='nv'>average</span><span class='o'>=</span>4, <span class='nv'>count</span><span class='o'>=</span>3, <span class='nv'>maximum</span><span class='o'>=</span>9, <span class='nv'>minimum</span><span class='o'>=</span>0, <span class='nv'>p25</span><span class='o'>=</span>0, <span class='nv'>p50</span><span class='o'>=</span>5, <span class='nv'>p75</span><span class='o'>=</span>9, <span class='nv'>p90</span><span class='o'>=</span>9, <span class='nv'>p95</span><span class='o'>=</span>9, <span class='nv'>p99</span><span class='o'>=</span>9, <span class='nv'>p999</span><span class='o'>=</span>9, <span class='nv'>p9999</span><span class='o'>=</span>9, <span class='nv'>sum</span><span class='o'>=</span>14<span class='o'>)</span>
+</code></pre></div>
+<p>除了我们自己的服务统计，我们也给了一些一般的经常使用的JVM 统计。</p>
+
+<p>现在让我们来看看实现配置的代码，客户端和服务器。</p>
+
+<p><strong>../config/SearchbirdServiceConfig.scala</strong></p>
+
+<p>一个配置是一个有一个为一些T 想要创建的apply: RuntimeEnviroment =&gt; T 方法 Scala 接口。在这里配置是“工厂”。在运行时，一个配置文件相当与一个脚本（通过使用scala 编译类库），它期待产生诸如配置object。一个RuntimeEnvironment 是一个查询不同运行参数的object（命令行标志，JVM 版本，构建时间等）。</p>
+
+<p>SearchbirdServiceConfig 类指定这样一个类。它和它的默认配置一起指定配置参数。（Finagle 支持一个我们可以忽略这个教程的意图的通用的追踪系统；Zipkin 分布跟踪系统是一个这样追踪的一个collector/aggregator）</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>SearchbirdServiceConfig</span> <span class='k'>extends</span> <span class='nc'>ServerConfig</span><span class='o'>[</span><span class='kt'>SearchbirdService.ThriftServer</span><span class='o'>]</span> <span class='o'>{</span>
+  <span class='k'>var</span> <span class='n'>thriftPort</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='mi'>9999</span>
+  <span class='k'>var</span> <span class='n'>tracerFactory</span><span class='k'>:</span> <span class='kt'>Tracer.Factory</span> <span class='o'>=</span> <span class='nc'>NullTracer</span><span class='o'>.</span><span class='n'>factory</span>
+
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>runtime</span><span class='k'>:</span> <span class='kt'>RuntimeEnvironment</span><span class='o'>)</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>SearchbirdServiceImpl</span><span class='o'>(</span><span class='k'>this</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>在我们的类里，我们想要创建一个SearchbirdService.ThriftServer,然后启动它。它读取配置（在development.scala 以及作为运行时的一个参数），创建SearchbirdService。ThriftServer，然后启动它。RuntimtEnvironment.loadRuntimeConfig 执行这个配置评估同时做为参数调用apply 方法。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>object</span> <span class='nc'>Main</span> <span class='o'>{</span>
+  <span class='k'>private</span> <span class='k'>val</span> <span class='n'>log</span> <span class='k'>=</span> <span class='nc'>Logger</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='n'>getClass</span><span class='o'>)</span>
+
+  <span class='k'>def</span> <span class='n'>main</span><span class='o'>(</span><span class='n'>args</span><span class='k'>:</span> <span class='kt'>Array</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>])</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>runtime</span> <span class='k'>=</span> <span class='nc'>RuntimeEnvironment</span><span class='o'>(</span><span class='k'>this</span><span class='o'>,</span> <span class='n'>args</span><span class='o'>)</span>
+    <span class='k'>val</span> <span class='n'>server</span> <span class='k'>=</span> <span class='n'>runtime</span><span class='o'>.</span><span class='n'>loadRuntimeConfig</span><span class='o'>[</span><span class='kt'>SearchbirdService.ThriftServer</span><span class='o'>]</span>
+    <span class='k'>try</span> <span class='o'>{</span>
+      <span class='n'>log</span><span class='o'>.</span><span class='n'>info</span><span class='o'>(</span><span class='s'>&quot;Starting SearchbirdService&quot;</span><span class='o'>)</span>
+      <span class='n'>server</span><span class='o'>.</span><span class='n'>start</span><span class='o'>()</span>
+    <span class='o'>}</span> <span class='k'>catch</span> <span class='o'>{</span>
+      <span class='k'>case</span> <span class='n'>e</span><span class='k'>:</span> <span class='kt'>Exception</span> <span class='o'>=&gt;</span>
+        <span class='n'>log</span><span class='o'>.</span><span class='n'>error</span><span class='o'>(</span><span class='n'>e</span><span class='o'>,</span> <span class='s'>&quot;Failed starting SearchbirdService, exiting&quot;</span><span class='o'>)</span>
+        <span class='nc'>ServiceTracker</span><span class='o'>.</span><span class='n'>shutdown</span><span class='o'>()</span>
+        <span class='nc'>System</span><span class='o'>.</span><span class='n'>exit</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p><strong>../SearchbirdServiceImpl.scala</strong></p>
+
+<p>这意味着服务：我们用我们的定制实现展开我们的SearchbirdService.ThriftServer。重新调用已经被我们用thrift 代码构建器创建的SearchbirdService.ThriftServer 。每一个thrift 方法生成一个scala 方法。目前为止在我们的例子里面，生成接口如下：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>trait</span> <span class='nc'>SearchbirdService</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>value</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Void</span><span class='o'>]</span>
+  <span class='k'>def</span> <span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>Future[Value] 将代替values 返回，所以计算可以被延期，（finagle <a href='http://twitter.github.io/scala_school/finagle.html'>文档</a>里面有更详细的信息。）对于本教程，所有关于Future 你需要了解的就是你可以通过get() 取回它的值。</p>
+
+<p>通过scala-bootstrapper 提供的默认键值存贮的实现也很简单：它提供一个数据库结构以及get 和put 调用访问数据结构。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>SearchbirdServiceImpl</span><span class='o'>(</span><span class='n'>config</span><span class='k'>:</span> <span class='kt'>SearchbirdServiceConfig</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>SearchbirdService</span><span class='o'>.</span><span class='nc'>ThriftServer</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>serverName</span> <span class='k'>=</span> <span class='s'>&quot;Searchbird&quot;</span>
+  <span class='k'>val</span> <span class='n'>thriftPort</span> <span class='k'>=</span> <span class='n'>config</span><span class='o'>.</span><span class='n'>thriftPort</span>
+  <span class='k'>override</span> <span class='k'>val</span> <span class='n'>tracerFactory</span> <span class='k'>=</span> <span class='n'>config</span><span class='o'>.</span><span class='n'>tracerFactory</span>
+
+  <span class='k'>val</span> <span class='n'>database</span> <span class='k'>=</span> <span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>String</span><span class='o'>]()</span>
+
+  <span class='k'>def</span> <span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>database</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+      <span class='k'>case</span> <span class='nc'>None</span> <span class='k'>=&gt;</span>
+        <span class='n'>log</span><span class='o'>.</span><span class='n'>debug</span><span class='o'>(</span><span class='s'>&quot;get %s: miss&quot;</span><span class='o'>,</span> <span class='n'>key</span><span class='o'>)</span>
+        <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span><span class='nc'>SearchbirdException</span><span class='o'>(</span><span class='s'>&quot;No such key&quot;</span><span class='o'>))</span>
+      <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>value</span><span class='o'>)</span> <span class='k'>=&gt;</span>
+        <span class='n'>log</span><span class='o'>.</span><span class='n'>debug</span><span class='o'>(</span><span class='s'>&quot;get %s: hit&quot;</span><span class='o'>,</span> <span class='n'>key</span><span class='o'>)</span>
+        <span class='nc'>Future</span><span class='o'>(</span><span class='n'>value</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>value</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>log</span><span class='o'>.</span><span class='n'>debug</span><span class='o'>(</span><span class='s'>&quot;put %s&quot;</span><span class='o'>,</span> <span class='n'>key</span><span class='o'>)</span>
+    <span class='n'>database</span><span class='o'>(</span><span class='n'>key</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>value</span>
+    <span class='nc'>Future</span><span class='o'>.</span><span class='nc'>Unit</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>shutdown</span><span class='o'>()</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>super</span><span class='o'>.</span><span class='n'>shutdown</span><span class='o'>(</span><span class='mf'>0.</span><span class='n'>seconds</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>结果是一个简单的thrift 向Scala HashMap 的接口。</p>
+
+<h2 id='id253'>一个简单的搜索引擎</h2>
+
+<p>现在我们来扩展我们的例子来创建一个简单的搜索引擎，我们将要把它变成一个由多个碎片组成的分布式搜索引擎，这样我们就可以适应更大量的文集而不是单个机器里面的内存。</p>
+
+<p>为了让事情更简单一点，为了支持搜索操作，我们将稍微的扩展我们当前的thrift 服务。model 用例把文档放到搜索引擎上，每个文档都是由一系列分割的单词组成;接着我们搜索一个关键字符串来返回所有包含所有关键字集合的文档。它的结构和前一个例子相同，但是增加了一个新的search 调用。</p>
+
+<p><img src='http://twitter.github.io/scala_school/searchbird-2.svg' alt='Searchbird implementation,revision 2' /></p>
+
+<p>要想实现上面的像搜索引擎，改变如下两个文件：</p>
+
+<p><strong>src/main/thrift/searchbird.thrift</strong></p>
+<div class='highlight'><pre><code class='scala'><span class='n'>service</span> <span class='nc'>SearchbirdService</span> <span class='o'>{</span>
+  <span class='n'>string</span> <span class='n'>get</span><span class='o'>(</span><span class='mi'>1</span><span class='k'>:</span> <span class='kt'>string</span> <span class='kt'>key</span><span class='o'>)</span> <span class='n'>throws</span><span class='o'>(</span><span class='mi'>1</span><span class='k'>:</span> <span class='kt'>SearchbirdException</span> <span class='kt'>ex</span><span class='o'>)</span>
+
+  <span class='n'>void</span> <span class='n'>put</span><span class='o'>(</span><span class='mi'>1</span><span class='k'>:</span> <span class='kt'>string</span> <span class='kt'>key</span><span class='o'>,</span> <span class='mi'>2</span><span class='k'>:</span> <span class='kt'>string</span> <span class='kt'>value</span><span class='o'>)</span>
+
+  <span class='n'>list</span><span class='o'>&lt;</span><span class='n'>string</span><span class='o'>&gt;</span> <span class='n'>search</span><span class='o'>(</span><span class='mi'>1</span><span class='k'>:</span> <span class='kt'>string</span> <span class='kt'>query</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>我们新增了一个搜索当前哈希表的search 方法，返回匹配查询的值的键。实现同样也非常简单：</p>
+
+<p><strong>../SearchbirdServiceImpl.scala</strong></p>
+
+<p>我们所有的改变都几乎发生在这个文件里。</p>
+
+<p>当前的数据库hashmap 保持了一个当前的映射到文档的键的目录。我们把它重命名为forward 然后给reverse 索引添加第二个map（它映射到一个包含token 的文档集合）。因此，在SearchbirdServiceImpl.scala 里面，把数据库定义替换成：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>forward</span> <span class='k'>=</span> <span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>String</span><span class='o'>]</span>
+  <span class='k'>with</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>SynchronizedMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>String</span><span class='o'>]</span>
+<span class='k'>val</span> <span class='n'>reverse</span> <span class='k'>=</span> <span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]]</span>
+  <span class='k'>with</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>SynchronizedMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]]</span>
+</code></pre></div>
+<p>在get 调用里，把database 替换成为forward，否则，get 会一直返回相同的值（它只是执行正向查找）。不管怎样，put 也需要改变：我们也需要为每个文档的taken 计算反转索引，可以通过给和taken 联系的list 添加文档键。把put 调用替换成下面的代码。给定一个特殊的搜索taken，我们现在可以使用reverse map 来搜索文档。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>val</span> <span class='n'>forward</span> <span class='k'>=</span> <span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>String</span><span class='o'>]</span>
+  <span class='k'>with</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>SynchronizedMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>String</span><span class='o'>]</span>
+<span class='k'>val</span> <span class='n'>reverse</span> <span class='k'>=</span> <span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]]</span>
+  <span class='k'>with</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>SynchronizedMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]]</span>
+</code></pre></div>
+<p>注意这里（尽管HashMap 是线程安全的）仅仅一个线程可以更新reverse map，同时确保特殊map入口的读-修改-写是原子操作。（这里的代码非常保守;它锁住了整个的map 而不是锁住每一个单独的取回-修改-写操作。）同时注意Set 作为数据结构的的使用；它确保了如果相同的token 在一个文档里出现两次的情况，它将要被foreach 循环执行一次。</p>
+
+<p>这个实现仍然有一个问题，它给读者留下了一个小练习：当我们用一个新文档重写一个键时，我们没有删除任何在反转索引里面的相关老文档。</p>
+
+<p>现在搜索引擎的菜是：新的搜索方法。它应该接受它的查询，寻找所有匹配的文档，然后和这个列表相交。这会产生一个包含所有接受参数的文档的列表。这在Scala 里面很容易表达，这里是SearchbirdServiceImpl 类：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>tokens</span> <span class='k'>=</span> <span class='n'>query</span><span class='o'>.</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot; &quot;</span><span class='o'>)</span>
+  <span class='k'>val</span> <span class='n'>hits</span> <span class='k'>=</span> <span class='n'>tokens</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>token</span> <span class='k'>=&gt;</span> <span class='n'>reverse</span><span class='o'>.</span><span class='n'>getOrElse</span><span class='o'>(</span><span class='n'>token</span><span class='o'>,</span> <span class='nc'>Set</span><span class='o'>())</span> <span class='o'>}</span>
+  <span class='k'>val</span> <span class='n'>intersected</span> <span class='k'>=</span> <span class='n'>hits</span> <span class='n'>reduceLeftOption</span> <span class='o'>{</span> <span class='k'>_</span> <span class='o'>&amp;</span> <span class='k'>_</span> <span class='o'>}</span> <span class='n'>getOrElse</span> <span class='nc'>Set</span><span class='o'>()</span>
+  <span class='n'>intersected</span><span class='o'>.</span><span class='n'>toList</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>在这小段代码里面没有什么值得调用的。当构造hit 列表时，如果键（token）没有找到，getOrElse 会应用它第二个参数的值（在这里是一个空的Set）。我们使用left-reduce 来执行真实的交叉。特殊的flavor ，reduceLeftOption，在hi ts 为空时也将不尝试执行减少，相反返回None 。 这允许我们应用一个默认的值而不是抛出一个异常。事实上，这和下面相当：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>def</span> <span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>tokens</span> <span class='k'>=</span> <span class='n'>query</span><span class='o'>.</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot; &quot;</span><span class='o'>)</span>
+  <span class='k'>val</span> <span class='n'>hits</span> <span class='k'>=</span> <span class='n'>tokens</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>token</span> <span class='k'>=&gt;</span> <span class='n'>reverse</span><span class='o'>.</span><span class='n'>getOrElse</span><span class='o'>(</span><span class='n'>token</span><span class='o'>,</span> <span class='nc'>Set</span><span class='o'>())</span> <span class='o'>}</span>
+  <span class='k'>if</span> <span class='o'>(</span><span class='n'>hits</span><span class='o'>.</span><span class='n'>isEmpty</span><span class='o'>)</span>
+    <span class='nc'>Nil</span>
+  <span class='k'>else</span>
+    <span class='n'>hits</span> <span class='n'>reduceLeft</span> <span class='o'>{</span> <span class='k'>_</span> <span class='o'>&amp;</span> <span class='k'>_</span> <span class='o'>}</span> <span class='n'>toList</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>使用哪一个大多看个人喜好，即使函数式风格经常避开了明智默认条件。</p>
+
+<p>我们现在可以使用console 来体验一下我们的新实现。在一次开启你的服务端：</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>./sbt
+...
+&gt; compile
+&gt; run -f config/development.scala
+...
+<span class='o'>[</span>info<span class='o'>]</span> Running com.twitter.searchbird.Main -f config/development.scala
+</code></pre></div>
+<p>然后从searchbird 路径下，开启客户端：</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>./console 127.0.0.1 9999
+...
+<span class='o'>[</span>info<span class='o'>]</span> Running com.twitter.searchbird.SearchbirdConsoleClient 127.0.0.1 9999
+<span class='s1'>&#39;client&#39;</span> is bound to your thrift client.
+
+finagle-client&gt; 
+</code></pre></div>
+<p>把下面的句子粘贴到你的控制台：</p>
+<div class='highlight'><pre><code class='scala'><span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;basics&quot;</span><span class='o'>,</span> <span class='s'>&quot; values functions classes methods inheritance try catch finally expression oriented&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;basics&quot;</span><span class='o'>,</span> <span class='s'>&quot; case classes objects packages apply update functions are objects (uniform access principle) pattern&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;collections&quot;</span><span class='o'>,</span> <span class='s'>&quot; lists maps functional combinators (map foreach filter zip&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;pattern&quot;</span><span class='o'>,</span> <span class='s'>&quot; more functions! partialfunctions more pattern&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;type&quot;</span><span class='o'>,</span> <span class='s'>&quot; basic types and type polymorphism type inference variance bounds&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;advanced&quot;</span><span class='o'>,</span> <span class='s'>&quot; advanced types view bounds higher kinded types recursive types structural&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;simple&quot;</span><span class='o'>,</span> <span class='s'>&quot; all about sbt the standard scala build&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;more&quot;</span><span class='o'>,</span> <span class='s'>&quot; tour of the scala collections&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;testing&quot;</span><span class='o'>,</span> <span class='s'>&quot; write tests with specs a bdd testing framework for&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;concurrency&quot;</span><span class='o'>,</span> <span class='s'>&quot; runnable callable threads futures twitter&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;java&quot;</span><span class='o'>,</span> <span class='s'>&quot; java interop using scala from&quot;</span><span class='o'>)</span>
+<span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;searchbird&quot;</span><span class='o'>,</span> <span class='s'>&quot; building a distributed search engine using&quot;</span><span class='o'>)</span>
+</code></pre></div>
+<p>我们现在可以执行一些搜索，它返回包含搜索条款的文档的键。</p>
+<div class='highlight'><pre><code class='bash'>&gt; client.search<span class='o'>(</span><span class='s2'>&quot;functions&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res12: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>basics<span class='o'>)</span>
+
+&gt; client.search<span class='o'>(</span><span class='s2'>&quot;java&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res13: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>java<span class='o'>)</span>
+
+&gt; client.search<span class='o'>(</span><span class='s2'>&quot;java scala&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res14: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>java<span class='o'>)</span>
+
+&gt; client.search<span class='o'>(</span><span class='s2'>&quot;functional&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res15: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>collections<span class='o'>)</span>
+
+&gt; client.search<span class='o'>(</span><span class='s2'>&quot;sbt&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res16: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>simple<span class='o'>)</span>
+
+&gt; client.search<span class='o'>(</span><span class='s2'>&quot;types&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res17: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span><span class='nb'>type</span>, advanced<span class='o'>)</span>
+</code></pre></div>
+<p>如果调用返回Future 就重新调用它，我们不得不使用一个blocking get() 调用来解决包括future 的值。我们可以使用Future.collect 命令来使用多并发请求并且等待它们的成功。</p>
+<div class='highlight'><pre><code class='bash'>&gt; import com.twitter.util.Future
+...
+&gt; Future.collect<span class='o'>(</span>Seq<span class='o'>(</span>
+    client.search<span class='o'>(</span><span class='s2'>&quot;types&quot;</span><span class='o'>)</span>,
+    client.search<span class='o'>(</span><span class='s2'>&quot;sbt&quot;</span><span class='o'>)</span>,
+    client.search<span class='o'>(</span><span class='s2'>&quot;functional&quot;</span><span class='o'>)</span>
+  <span class='o'>))</span>.get<span class='o'>()</span>
+res18: Seq<span class='o'>[</span>Seq<span class='o'>[</span>String<span class='o'>]]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>ArrayBuffer<span class='o'>(</span><span class='nb'>type</span>, advanced<span class='o'>)</span>, ArrayBuffer<span class='o'>(</span>simple<span class='o'>)</span>, ArrayBuffer<span class='o'>(</span>collections<span class='o'>))</span>
+</code></pre></div>
+<h2 id='id254'>分发我们的服务</h2>
+
+<p>在单个机器上，我们简陋的内存搜索引擎不会搜索到大于内存值的文集。我们现在尝试通过含有简单分片方案的分布式节点来弥补一下。这里是代码图：</p>
+
+<p><img src='http://twitter.github.io/scala_school/searchbird-3.svg' alt='Distributed Searchbird service' /></p>
+
+<h3 id='id255'>抽象</h3>
+
+<p>为了补救我们的工作，我们首先引入了一个抽象&#8211;Index&#8211;为了从SearchbirdService 里面脱钩index 实现。这是一个简单的重构。我们开始给build 添加一个Index 文件（创建一个searchbird/src/main/scala/com/twitter/searchbird/Index.scala）:</p>
+
+<p><strong>../Index.scala</strong></p>
+<div class='highlight'><pre><code class='scala'><span class='k'>package</span> <span class='nn'>com.twitter.searchbird</span>
+
+<span class='k'>import</span> <span class='nn'>scala.collection.mutable</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.util._</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.conversions.time._</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.logging.Logger</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.finagle.builder.ClientBuilder</span>
+<span class='k'>import</span> <span class='nn'>com.twitter.finagle.thrift.ThriftClientFramedCodec</span>
+
+<span class='k'>trait</span> <span class='nc'>Index</span> <span class='o'>{</span>
+  <span class='k'>def</span> <span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span>
+  <span class='k'>def</span> <span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>value</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>Unit</span><span class='o'>]</span>
+  <span class='k'>def</span> <span class='n'>search</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span><span class='k'>:</span> <span class='kt'>Future</span><span class='o'>[</span><span class='kt'>List</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]]</span>
+<span class='o'>}</span>
+
+<span class='k'>class</span> <span class='nc'>ResidentIndex</span> <span class='k'>extends</span> <span class='nc'>Index</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>log</span> <span class='k'>=</span> <span class='nc'>Logger</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='n'>getClass</span><span class='o'>)</span>
+
+  <span class='k'>val</span> <span class='n'>forward</span> <span class='k'>=</span> <span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>String</span><span class='o'>]</span>
+    <span class='k'>with</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>SynchronizedMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>String</span><span class='o'>]</span>
+  <span class='k'>val</span> <span class='n'>reverse</span> <span class='k'>=</span> <span class='k'>new</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>HashMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]]</span>
+    <span class='k'>with</span> <span class='n'>mutable</span><span class='o'>.</span><span class='nc'>SynchronizedMap</span><span class='o'>[</span><span class='kt'>String</span>, <span class='kt'>Set</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]]</span>
+
+  <span class='k'>def</span> <span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>forward</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+      <span class='k'>case</span> <span class='nc'>None</span> <span class='k'>=&gt;</span>
+        <span class='n'>log</span><span class='o'>.</span><span class='n'>debug</span><span class='o'>(</span><span class='s'>&quot;get %s: miss&quot;</span><span class='o'>,</span> <span class='n'>key</span><span class='o'>)</span>
+        <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span><span class='nc'>SearchbirdException</span><span class='o'>(</span><span class='s'>&quot;No such key&quot;</span><span class='o'>))</span>
+      <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>value</span><span class='o'>)</span> <span class='k'>=&gt;</span>
+        <span class='n'>log</span><span class='o'>.</span><span class='n'>debug</span><span class='o'>(</span><span class='s'>&quot;get %s: hit&quot;</span><span class='o'>,</span> <span class='n'>key</span><span class='o'>)</span>
+        <span class='nc'>Future</span><span class='o'>(</span><span class='n'>value</span><span class='o'>)</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>value</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='n'>log</span><span class='o'>.</span><span class='n'>debug</span><span class='o'>(</span><span class='s'>&quot;put %s&quot;</span><span class='o'>,</span> <span class='n'>key</span><span class='o'>)</span>
+    
+    <span class='n'>forward</span><span class='o'>(</span><span class='n'>key</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>value</span>
+
+    <span class='c1'>// admit only one updater.</span>
+    <span class='n'>synchronized</span> <span class='o'>{</span>
+      <span class='o'>(</span><span class='nc'>Set</span><span class='o'>()</span> <span class='o'>++</span> <span class='n'>value</span><span class='o'>.</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot; &quot;</span><span class='o'>))</span> <span class='n'>foreach</span> <span class='o'>{</span> <span class='n'>token</span> <span class='k'>=&gt;</span>
+        <span class='k'>val</span> <span class='n'>current</span> <span class='k'>=</span> <span class='n'>reverse</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='n'>token</span><span class='o'>)</span> <span class='n'>getOrElse</span> <span class='nc'>Set</span><span class='o'>()</span>
+        <span class='n'>reverse</span><span class='o'>(</span><span class='n'>token</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>current</span> <span class='o'>+</span> <span class='n'>key</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+
+    <span class='nc'>Future</span><span class='o'>.</span><span class='nc'>Unit</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>tokens</span> <span class='k'>=</span> <span class='n'>query</span><span class='o'>.</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot; &quot;</span><span class='o'>)</span>
+    <span class='k'>val</span> <span class='n'>hits</span> <span class='k'>=</span> <span class='n'>tokens</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>token</span> <span class='k'>=&gt;</span> <span class='n'>reverse</span><span class='o'>.</span><span class='n'>getOrElse</span><span class='o'>(</span><span class='n'>token</span><span class='o'>,</span> <span class='nc'>Set</span><span class='o'>())</span> <span class='o'>}</span>
+    <span class='k'>val</span> <span class='n'>intersected</span> <span class='k'>=</span> <span class='n'>hits</span> <span class='n'>reduceLeftOption</span> <span class='o'>{</span> <span class='k'>_</span> <span class='o'>&amp;</span> <span class='k'>_</span> <span class='o'>}</span> <span class='n'>getOrElse</span> <span class='nc'>Set</span><span class='o'>()</span>
+    <span class='n'>intersected</span><span class='o'>.</span><span class='n'>toList</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>我们现在把我们的thrift 服务转换成为简单的dispatch 机制：它给所有Index 实例提供一个thrift 接口。这是一个很强大的抽象，因为它把服务的实现从index 的实现分离了出来。服务不必知道任何关于相关index 的细节;index 可能是local 或者可能是远程或者可能是一些远程indices 的复合物，但是服务什么也不关心，index 的实现可能在服务未变时而改变。</p>
+
+<p>把你的SearchbirdServiceImpl 类定义成（很简单的）一个（不在包含index 详细实现）。注意现在初始化一个服务需要第二个参数，Index。</p>
+
+<p><strong>../SearchbirdServiceImpl.scala</strong></p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>SearchbirdServiceImpl</span><span class='o'>(</span><span class='n'>config</span><span class='k'>:</span> <span class='kt'>SearchbirdServiceConfig</span><span class='o'>,</span> <span class='n'>index</span><span class='k'>:</span> <span class='kt'>Index</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>SearchbirdService</span><span class='o'>.</span><span class='nc'>ThriftServer</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>serverName</span> <span class='k'>=</span> <span class='s'>&quot;Searchbird&quot;</span>
+  <span class='k'>val</span> <span class='n'>thriftPort</span> <span class='k'>=</span> <span class='n'>config</span><span class='o'>.</span><span class='n'>thriftPort</span>
+
+  <span class='k'>def</span> <span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>index</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='o'>)</span>
+  <span class='k'>def</span> <span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>value</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span>
+    <span class='n'>index</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='o'>,</span> <span class='n'>value</span><span class='o'>)</span> <span class='n'>flatMap</span> <span class='o'>{</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>.</span><span class='nc'>Unit</span> <span class='o'>}</span>
+  <span class='k'>def</span> <span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>index</span><span class='o'>.</span><span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='o'>)</span>
+
+  <span class='k'>def</span> <span class='n'>shutdown</span><span class='o'>()</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>super</span><span class='o'>.</span><span class='n'>shutdown</span><span class='o'>(</span><span class='mf'>0.</span><span class='n'>seconds</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p><strong>../config/SearchbirdServiceConfig.scala</strong></p>
+
+<p>根据下面的代码更新SearchbirdServiceconfig 里面的apply 调用：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>SearchbirdServiceConfig</span> <span class='k'>extends</span> <span class='nc'>ServerConfig</span><span class='o'>[</span><span class='kt'>SearchbirdService.ThriftServer</span><span class='o'>]</span> <span class='o'>{</span>
+  <span class='k'>var</span> <span class='n'>thriftPort</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='mi'>9999</span>
+  <span class='k'>var</span> <span class='n'>tracerFactory</span><span class='k'>:</span> <span class='kt'>Tracer.Factory</span> <span class='o'>=</span> <span class='nc'>NullTracer</span><span class='o'>.</span><span class='n'>factory</span>
+
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>runtime</span><span class='k'>:</span> <span class='kt'>RuntimeEnvironment</span><span class='o'>)</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>SearchbirdServiceImpl</span><span class='o'>(</span><span class='k'>this</span><span class='o'>,</span> <span class='k'>new</span> <span class='nc'>ResidentIndex</span><span class='o'>)</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>为了有一个查询子节点坐标分布式节点，我们将要建立我们的简单分布式系统。为了做到这一点，我们需要两个新的Index 类型。一个代表远程index，另一个是通过一个其他Index 实例的综合index。我们通过这种方法我们可以通过实例化一个远程indices 的综合索引来构建分布式索引。注意所有Index 类型都有相同的接口，因此服务不需要知道它们连接的是远程还是综合的。</p>
+
+<p><strong>../Index.scala</strong></p>
+
+<p>在Index.scala 里，定义一个CompositeIndex：</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>CompositeIndex</span><span class='o'>(</span><span class='n'>indices</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>Index</span><span class='o'>])</span> <span class='k'>extends</span> <span class='nc'>Index</span> <span class='o'>{</span>
+  <span class='n'>require</span><span class='o'>(!</span><span class='n'>indices</span><span class='o'>.</span><span class='n'>isEmpty</span><span class='o'>)</span>
+
+  <span class='k'>def</span> <span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>queries</span> <span class='k'>=</span> <span class='n'>indices</span><span class='o'>.</span><span class='n'>map</span> <span class='o'>{</span> <span class='n'>idx</span> <span class='k'>=&gt;</span>
+      <span class='n'>idx</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='o'>)</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>r</span> <span class='k'>=&gt;</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>r</span><span class='o'>)</span> <span class='o'>}</span> <span class='n'>handle</span> <span class='o'>{</span> <span class='k'>case</span> <span class='n'>e</span> <span class='k'>=&gt;</span> <span class='nc'>None</span> <span class='o'>}</span>
+    <span class='o'>}</span>
+
+    <span class='nc'>Future</span><span class='o'>.</span><span class='n'>collect</span><span class='o'>(</span><span class='n'>queries</span><span class='o'>)</span> <span class='n'>flatMap</span> <span class='o'>{</span> <span class='n'>results</span> <span class='k'>=&gt;</span>
+      <span class='n'>results</span><span class='o'>.</span><span class='n'>find</span> <span class='o'>{</span> <span class='k'>_</span><span class='o'>.</span><span class='n'>isDefined</span> <span class='o'>}</span> <span class='n'>map</span> <span class='o'>{</span> <span class='k'>_</span><span class='o'>.</span><span class='n'>get</span> <span class='o'>}</span> <span class='k'>match</span> <span class='o'>{</span>
+        <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>v</span><span class='o'>)</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='n'>v</span><span class='o'>)</span>
+        <span class='k'>case</span> <span class='nc'>None</span> <span class='k'>=&gt;</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span><span class='nc'>SearchbirdException</span><span class='o'>(</span><span class='s'>&quot;No such key&quot;</span><span class='o'>))</span>
+      <span class='o'>}</span>
+    <span class='o'>}</span>
+  <span class='o'>}</span>
+
+  <span class='k'>def</span> <span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>value</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span>
+    <span class='nc'>Future</span><span class='o'>.</span><span class='n'>exception</span><span class='o'>(</span><span class='nc'>SearchbirdException</span><span class='o'>(</span><span class='s'>&quot;put() not supported by CompositeIndex&quot;</span><span class='o'>))</span>
+
+  <span class='k'>def</span> <span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>queries</span> <span class='k'>=</span> <span class='n'>indices</span><span class='o'>.</span><span class='n'>map</span> <span class='o'>{</span> <span class='k'>_</span><span class='o'>.</span><span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='o'>)</span> <span class='n'>rescue</span> <span class='o'>{</span> <span class='k'>case</span> <span class='k'>_=&gt;</span> <span class='nc'>Future</span><span class='o'>.</span><span class='n'>value</span><span class='o'>(</span><span class='nc'>Nil</span><span class='o'>)</span> <span class='o'>}</span> <span class='o'>}</span>
+    <span class='nc'>Future</span><span class='o'>.</span><span class='n'>collect</span><span class='o'>(</span><span class='n'>queries</span><span class='o'>)</span> <span class='n'>map</span> <span class='o'>{</span> <span class='n'>results</span> <span class='k'>=&gt;</span> <span class='o'>(</span><span class='nc'>Set</span><span class='o'>()</span> <span class='o'>++</span> <span class='n'>results</span><span class='o'>.</span><span class='n'>flatten</span><span class='o'>)</span> <span class='n'>toList</span> <span class='o'>}</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>综合的index 通过一个相关的Index 实例起作用。注意它不在乎这些实际上是怎么实现的。这个综合的类型允许在构造多种schemes 查询时有很大的灵活性，因此综合索引不需要支持put 操作。这个直接被字节点替代了。get 被实现为查询所有的字节点然后选出第一个成功的结果。如果没有，我们就抛出一个异常。注意在值被通知抛出异常的情况下，我们在Future 中处理它，把任何异常类型转换为None 值。在一个真实的系统里，我们可能针对错误的值有适当的错误代码而不是使用异常。异常是原型之间的权宜，但是构成很不好。为了区别真实的异常还是值丢失，我们不得不检查异常本身。这返回值类型里面的最好的方式直接识别嵌入。</p>
+
+<p>search 和之前类似的方法工作。和找到第一个值不一样，我们把它们组合了，确保他们使用Set 构造器来去重。</p>
+
+<p>RemoteIndex 来给服务端提供提供一个Index 接口。</p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>RemoteIndex</span><span class='o'>(</span><span class='n'>hosts</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>extends</span> <span class='nc'>Index</span> <span class='o'>{</span>
+  <span class='k'>val</span> <span class='n'>transport</span> <span class='k'>=</span> <span class='nc'>ClientBuilder</span><span class='o'>()</span>
+    <span class='o'>.</span><span class='n'>name</span><span class='o'>(</span><span class='s'>&quot;remoteIndex&quot;</span><span class='o'>)</span>
+    <span class='o'>.</span><span class='n'>hosts</span><span class='o'>(</span><span class='n'>hosts</span><span class='o'>)</span>
+    <span class='o'>.</span><span class='n'>codec</span><span class='o'>(</span><span class='nc'>ThriftClientFramedCodec</span><span class='o'>())</span>
+    <span class='o'>.</span><span class='n'>hostConnectionLimit</span><span class='o'>(</span><span class='mi'>1</span><span class='o'>)</span>
+    <span class='o'>.</span><span class='n'>timeout</span><span class='o'>(</span><span class='mf'>500.</span><span class='n'>milliseconds</span><span class='o'>)</span>
+    <span class='o'>.</span><span class='n'>build</span><span class='o'>()</span>
+  <span class='k'>val</span> <span class='n'>client</span> <span class='k'>=</span> <span class='k'>new</span> <span class='nc'>SearchbirdService</span><span class='o'>.</span><span class='nc'>FinagledClient</span><span class='o'>(</span><span class='n'>transport</span><span class='o'>)</span>
+
+  <span class='k'>def</span> <span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>client</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='n'>key</span><span class='o'>)</span>
+  <span class='k'>def</span> <span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>,</span> <span class='n'>value</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='n'>key</span><span class='o'>,</span> <span class='n'>value</span><span class='o'>)</span> <span class='n'>map</span> <span class='o'>{</span> <span class='k'>_</span> <span class='k'>=&gt;</span> <span class='o'>()</span> <span class='o'>}</span>
+  <span class='k'>def</span> <span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='k'>:</span> <span class='kt'>String</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>client</span><span class='o'>.</span><span class='n'>search</span><span class='o'>(</span><span class='n'>query</span><span class='o'>)</span> <span class='n'>map</span> <span class='o'>{</span> <span class='k'>_</span><span class='o'>.</span><span class='n'>toList</span> <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>这个结构是一个含有一些智能默认的finagle fhrift 客户端，仅仅代理调用，能简单的调整类型。</p>
+
+<h2 id='id256'>把它们都放在一起</h2>
+
+<p>我们现在已经有了我们需要的所有碎片。为了能够既做为一个分布式节点有能做为一个共享节点调用给定的节点我们需要调整一下配置。为了做到这点，我们通过为它创建一个新的配置项目来枚举我们系统里面的碎片。我们也需要给我们SearchbirdServiceImpl 的初始化添加一个Index 参数。我们接着使用命令行参数（重新调用已经访问过它们的Config）来每一端开始服务。</p>
+
+<p><strong>../config/SearchbirdServiceConfig.scala</strong></p>
+<div class='highlight'><pre><code class='scala'><span class='k'>class</span> <span class='nc'>SearchbirdServiceConfig</span> <span class='k'>extends</span> <span class='nc'>ServerConfig</span><span class='o'>[</span><span class='kt'>SearchbirdService.ThriftServer</span><span class='o'>]</span> <span class='o'>{</span>
+  <span class='k'>var</span> <span class='n'>thriftPort</span><span class='k'>:</span> <span class='kt'>Int</span> <span class='o'>=</span> <span class='mi'>9999</span>
+  <span class='k'>var</span> <span class='n'>shards</span><span class='k'>:</span> <span class='kt'>Seq</span><span class='o'>[</span><span class='kt'>String</span><span class='o'>]</span> <span class='k'>=</span> <span class='nc'>Seq</span><span class='o'>()</span>
+
+  <span class='k'>def</span> <span class='n'>apply</span><span class='o'>(</span><span class='n'>runtime</span><span class='k'>:</span> <span class='kt'>RuntimeEnvironment</span><span class='o'>)</span> <span class='k'>=</span> <span class='o'>{</span>
+    <span class='k'>val</span> <span class='n'>index</span> <span class='k'>=</span> <span class='n'>runtime</span><span class='o'>.</span><span class='n'>arguments</span><span class='o'>.</span><span class='n'>get</span><span class='o'>(</span><span class='s'>&quot;shard&quot;</span><span class='o'>)</span> <span class='k'>match</span> <span class='o'>{</span>
+      <span class='k'>case</span> <span class='nc'>Some</span><span class='o'>(</span><span class='n'>arg</span><span class='o'>)</span> <span class='k'>=&gt;</span>
+        <span class='k'>val</span> <span class='n'>which</span> <span class='k'>=</span> <span class='n'>arg</span><span class='o'>.</span><span class='n'>toInt</span>
+        <span class='k'>if</span> <span class='o'>(</span><span class='n'>which</span> <span class='o'>&gt;=</span> <span class='n'>shards</span><span class='o'>.</span><span class='n'>size</span> <span class='o'>||</span> <span class='n'>which</span> <span class='o'>&lt;</span> <span class='mi'>0</span><span class='o'>)</span>
+          <span class='k'>throw</span> <span class='k'>new</span> <span class='nc'>Exception</span><span class='o'>(</span><span class='s'>&quot;invalid shard number %d&quot;</span><span class='o'>.</span><span class='n'>format</span><span class='o'>(</span><span class='n'>which</span><span class='o'>))</span>
+
+        <span class='c1'>// override with the shard port</span>
+        <span class='k'>val</span> <span class='nc'>Array</span><span class='o'>(</span><span class='k'>_</span><span class='o'>,</span> <span class='n'>port</span><span class='o'>)</span> <span class='k'>=</span> <span class='n'>shards</span><span class='o'>(</span><span class='n'>which</span><span class='o'>).</span><span class='n'>split</span><span class='o'>(</span><span class='s'>&quot;:&quot;</span><span class='o'>)</span>
+        <span class='n'>thriftPort</span> <span class='k'>=</span> <span class='n'>port</span><span class='o'>.</span><span class='n'>toInt</span>
+
+        <span class='k'>new</span> <span class='nc'>ResidentIndex</span>
+
+      <span class='k'>case</span> <span class='nc'>None</span> <span class='k'>=&gt;</span>
+        <span class='n'>require</span><span class='o'>(!</span><span class='n'>shards</span><span class='o'>.</span><span class='n'>isEmpty</span><span class='o'>)</span>
+        <span class='k'>val</span> <span class='n'>remotes</span> <span class='k'>=</span> <span class='n'>shards</span> <span class='n'>map</span> <span class='o'>{</span> <span class='k'>new</span> <span class='nc'>RemoteIndex</span><span class='o'>(</span><span class='k'>_</span><span class='o'>)</span> <span class='o'>}</span>
+        <span class='k'>new</span> <span class='nc'>CompositeIndex</span><span class='o'>(</span><span class='n'>remotes</span><span class='o'>)</span>
+    <span class='o'>}</span>
+
+    <span class='k'>new</span> <span class='nc'>SearchbirdServiceImpl</span><span class='o'>(</span><span class='k'>this</span><span class='o'>,</span> <span class='n'>index</span><span class='o'>)</span>
+  <span class='o'>}</span>
+<span class='o'>}</span>
+</code></pre></div>
+<p>现在我们来调整参数，给SearchbirdServiceConfig（我们可以叫做从0到9000端口共享，通过9001端口共享0,等等）实例添加碎片初始化。</p>
+
+<p><strong>config/development.scala</strong></p>
+<div class='highlight'><pre><code class='scala'><span class='k'>new</span> <span class='nc'>SearchbirdServiceConfig</span> <span class='o'>{</span>
+  <span class='c1'>// Add your own config here</span>
+  <span class='n'>shards</span> <span class='k'>=</span> <span class='nc'>Seq</span><span class='o'>(</span>
+    <span class='s'>&quot;localhost:9000&quot;</span><span class='o'>,</span>
+    <span class='s'>&quot;localhost:9001&quot;</span><span class='o'>,</span>
+    <span class='s'>&quot;localhost:9002&quot;</span>
+  <span class='o'>)</span>
+  <span class='o'>...</span>
+</code></pre></div>
+<p>注释掉admin.httpPort 的设置（我们不想好多服务都运行在同一台机器上，而所有的服务还试着打开相同的端口）：</p>
+<div class='highlight'><pre><code class='bash'>  // admin.httpPort <span class='o'>=</span> 9900
+</code></pre></div>
+<p>现在如果我们不通过任何参数来调用我们的服务，它就会启动一个杰出的和所有给定碎片通讯的节点。如果我们指定一个碎片参数，它会在属于这个碎片索引的端口上启动一个服务。</p>
+
+<p>让我们来试试吧！我们将运行3 个服务：2个碎片一个distinguished 节点。第一个编译改变。</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>./sbt
+&gt; compile
+...
+&gt; <span class='nb'>exit</span>
+</code></pre></div>
+<p>运行3 个服务端：</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>./sbt <span class='s1'>&#39;run -f config/development.scala -D shard=0&#39;</span>
+<span class='nv'>$ </span>./sbt <span class='s1'>&#39;run -f config/development.scala -D shard=1&#39;</span>
+<span class='nv'>$ </span>./sbt <span class='s1'>&#39;run -f config/development.scala&#39;</span>
+</code></pre></div>
+<p>你既可以把它们运行在3个不同的窗口或者（在一个窗口里）按顺序启动它们，等待它们启动，用ctrl + Z 来暂停，bg 来让它们在后台运行。</p>
+
+<p>然后我们就会在控制台里和它们交互。首先，让我们在两个碎片节点里填充一些数据。在searchbird 路径里运行：</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>./console localhost 9000
+...
+&gt; client.put<span class='o'>(</span><span class='s2'>&quot;fromShardA&quot;</span>, <span class='s2'>&quot;a value from SHARD_A&quot;</span><span class='o'>)</span>
+&gt; client.put<span class='o'>(</span><span class='s2'>&quot;hello&quot;</span>, <span class='s2'>&quot;world&quot;</span><span class='o'>)</span>
+</code></pre></div><div class='highlight'><pre><code class='scala'><span class='n'>$</span> <span class='o'>./</span><span class='n'>console</span> <span class='n'>localhost</span> <span class='mi'>9001</span>
+<span class='o'>...</span>
+<span class='o'>&gt;</span> <span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;fromShardB&quot;</span><span class='o'>,</span> <span class='s'>&quot;a value from SHARD_B&quot;</span><span class='o'>)</span>
+<span class='o'>&gt;</span> <span class='n'>client</span><span class='o'>.</span><span class='n'>put</span><span class='o'>(</span><span class='s'>&quot;hello&quot;</span><span class='o'>,</span> <span class='s'>&quot;world again&quot;</span><span class='o'>)</span>
+</code></pre></div>
+<p>你可以在你完成它们之后退出控制台会话。现在从distinguished 节点里查询我们的数据库（端口9999）：</p>
+<div class='highlight'><pre><code class='bash'><span class='nv'>$ </span>./console localhost 9999
+<span class='o'>[</span>info<span class='o'>]</span> Running com.twitter.searchbird.SearchbirdConsoleClient localhost 9999
+<span class='s1'>&#39;client&#39;</span> is bound to your thrift client.
+
+finagle-client&gt; client.get<span class='o'>(</span><span class='s2'>&quot;hello&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res0: <span class='nv'>String</span> <span class='o'>=</span> world
+
+finagle-client&gt; client.get<span class='o'>(</span><span class='s2'>&quot;fromShardC&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+SearchbirdException<span class='o'>(</span>No such key<span class='o'>)</span>
+...
+
+finagle-client&gt; client.get<span class='o'>(</span><span class='s2'>&quot;fromShardA&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res2: <span class='nv'>String</span> <span class='o'>=</span> a value from SHARD_A
+
+finagle-client&gt; client.search<span class='o'>(</span><span class='s2'>&quot;hello&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res3: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>()</span>
+
+finagle-client&gt; client.search<span class='o'>(</span><span class='s2'>&quot;world&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res4: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>hello<span class='o'>)</span>
+
+finagle-client&gt; client.search<span class='o'>(</span><span class='s2'>&quot;value&quot;</span><span class='o'>)</span>.get<span class='o'>()</span>
+res5: Seq<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> ArrayBuffer<span class='o'>(</span>fromShardA, fromShardB<span class='o'>)</span>
+</code></pre></div>
+<p>这个设计有多个允许更多模块和稳定实现的数据抽象：</p>
+
+<ul>
+<li>ResidentIndex 数据结构对网络、服务或者客户端一无所知。</li>
+
+<li>CompositeIndex 不知道consitituent indeices 是如何实现的或者它们相关的数据结构；它简单的给它们分布了一个请求</li>
+
+<li>服务端相同的search 接口允许服务查询本地数据结构（ResidenIndex）或者在不需要知道对调用者隐藏的分别来分布查询其它服务（CompositeIndex）</li>
+
+<li>SearchbirdServiceImpl 和Index 现在是分隔的模块了，允许一个简单的服务实现以及分隔服务和访问者的数据结构的实现</li>
+
+<li>设计足够的稳定允许一个或者更多的远程indices，位于本地机器或者一个远程机器</li>
+</ul>
+
+<p>对这个实现的可能的改善如下</p>
+
+<ul>
+<li>当前的实现给所有的节点发送put() 调用。作为代替，我们可以使用一个hash 表来给一个节点和所有的分布存储节点发送一个put（） 调用。 * 注意，不管怎样我们丢掉了这种方法的冗余。我们怎样获得一些redundancy 却不需要完整的复制？ * 我们没有处理系统里任何含有失败的感兴趣的信息（例如，我们没有处理任何异常）。</li>
+</ul>
+
+<ol>
+<li>local ./sbt 脚本简单的保证了sbt 版本是和我们已知的合适的可见类库一致</li>
+
+<li>在target/gen-scala/com/twitter/searchbird/SearchbirdService.scala</li>
+
+<li>见Ostrich 的<a href='https://github.com/twitter/ostrich/blob/master/README.md'>README</a> 的更多信息。</li>
+</ol>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>

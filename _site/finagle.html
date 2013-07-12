@@ -276,7 +276,7 @@ res113: <span class='nv'>Int</span> <span class='o'>=</span> 7
 
 scala&gt;
 </code></pre></div>
-<h3 id='id56'>组合例子：缓存率限制</h3>
+<h3 id='id248'>组合例子：缓存率限制</h3>
 
 <p>这些组合表达了网络服务的操作类型。这个假想代码执行率限制（为了获得一个本地缓存限制率）同时调度了一个代表用户终端的请求。</p>
 <div class='highlight'><pre><code class='scala'><span class='c1'>// Find out if user is rate-limited. This can be slow; we have to ask</span>
@@ -428,7 +428,7 @@ scala&gt;
 
 <h2 id='servide'>Servide</h2>
 
-<p><img alt='Client and Server' src='http://twitter.github.io/scala_school/finagle_client_server.png' /> <img alt='Filter and Server' src='http://twitter.github.io/scala_school/finagle_filter.png' /> 一个Finagle 服务器代表一个处理RPC 的服务，接受请求然后返回一个响应。一个服务是一个函数Req =&gt; Funture[Req] 对于一些请求和响应类型。</p>
+<p><img src='http://twitter.github.io/scala_school/finagle_client_server.png' alt='Client and Server' /> <img src='http://twitter.github.io/scala_school/finagle_filter.png' alt='Filter and Server' /> 一个Finagle 服务器代表一个处理RPC 的服务，接受请求然后返回一个响应。一个服务是一个函数Req =&gt; Funture[Req] 对于一些请求和响应类型。</p>
 
 <p>abstract class Service[-Req,+Req] extends (Req =&gt; Future[Req])</p>
 
@@ -454,7 +454,7 @@ scala&gt;
 
 <p>我们也谈论了Fiagle 的过滤器。一个站点过滤服务，修改流过它的数据。过滤器很好的和服务组合。比如，如果你有一个比率限制过滤器以及一个tweet-serving 服务，你可以把它们放在一起做为比率限制过滤和tweet-serving 服务。</p>
 
-<h2 id='id57'>客户端</h2>
+<h2 id='id249'>客户端</h2>
 
 <p>一个Finagle 客户端导入一个服务。它有一些关于怎样通过网络发送数据的配置。一个简单的HTTP 客户端可能看起来这样。</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>org.jboss.netty.handler.codec.http.</span><span class='o'>{</span><span class='nc'>DefaultHttpRequest</span><span class='o'>,</span> <span class='nc'>HttpRequest</span><span class='o'>,</span> <span class='nc'>HttpResponse</span><span class='o'>,</span> <span class='nc'>HttpVersion</span><span class='o'>,</span> <span class='nc'>HttpMethod</span><span class='o'>}</span>
@@ -480,7 +480,7 @@ scala&gt;
   <span class='n'>println</span><span class='o'>(</span><span class='s'>&quot;failed :-(&quot;</span><span class='o'>,</span> <span class='n'>exc</span><span class='o'>)</span>
 <span class='o'>}</span>
 </code></pre></div>
-<h2 id='id58'>服务端</h2>
+<h2 id='id250'>服务端</h2>
 
 <p>在服务和关于怎样监听从网络上来的请求方面的服务器定义。一个简单的服务器看起来可能向下面这样：</p>
 <div class='highlight'><pre><code class='scala'><span class='k'>import</span> <span class='nn'>com.twitter.finagle.Service</span>
@@ -641,8 +641,6 @@ scala&gt;
 <p>如果你学习了类型系统或者/以及category 理论，你会很高兴的发现flatMap 就想要与monadic 绑定。</p>
 </li>
 </ul>
-<div class='highlight'><pre><code class='scala'>
-</code></pre></div>
 </div>
 
         </div>
