@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>类型 & 多态基础</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/b.css">
+
+    </head>
+    <body>
+        <div class="topbar">
+          <div class="fill">
+            <div class="container fixed">
+              <h3>
+                <a href ="/" class="brand">类型 & 多态基础</a>
+              </h3>
+              <ul class="nav secondary-nav">
+                
+                <li>
+                  <a href = "pattern-matching-and-functional-composition.html" ><<上一节</a>
+                </li>
+                
+                
+                <li>
+                  <a href ="advanced-types.html" >下一节>></a>
+                </li>
+                
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="container" style="padding-top:60px;">
+          <div id="post">
+<p>课程包括</p>
+
+<ul>
+<li>什么是静态类型 What are static types?</li>
+
+<li>Scala 里面的类型 Types in Scala</li>
+
+<li>参量的多态 Parametric Polymorphism</li>
+
+<li>类型推论：Hindley-Milner 还是 类型推论 Type inference: Hindley vs. type inference</li>
+
+<li>变化量 Variance</li>
+
+<li>限定 Bounds</li>
+
+<li>定量 Quantification</li>
+</ul>
+
+<h2 id='id189'>什么是静态类型，为什么说他们很有用？</h2>
+
+<p>Pierce 说过：“静态类型就是一个语句方法，它根据它们计算出来的的种类分类程序语句，来自动检查指定的缺少的错误行为。”</p>
+
+<p>类型允许你表示函数 domain &amp; codomains。比如，从数学角度来看，我们经常看到：</p>
+<div class='highlight'><pre><code class='bash'>f: R -&gt; N
+</code></pre></div>
+<p>它告诉我们函数“f” 是从是实数集合到自然书集合的一个映射。</p>
+
+<p>理论上的，这就是具体的类型。类型系统给我们一些更有力的方式来表达这些集合。</p>
+
+<p>给定了这些注释，编辑器现在可以静态的（在编译时间）确定程序是健全的。这就是说，如果值（在运行时）没有遵从程序强加的约束编译就会失败。</p>
+
+<p>通俗的讲，类型检查仅仅保证不健全的程序不会被编译。但不能保证没一个健全的程序都呢给你被编译。</p>
+
+<p>随着类型系统的表达式增加，我们可以写出更稳定的代码，因为它允许我们的程序甚至在运行之前（当然类型自己以bug 的模来计算）保证不变性。</p>
+
+<p>注意在编译时所有的类型信息都被移除了。它不在需要了。这个叫做消磁（erasure）。</p>
+
+<h2 id='scala_'>Scala 里面的类型</h2>
+
+<p>Scala 的强类型系统允许非常丰富的表达式。一些主要的特性有：</p>
+
+<ul>
+<li>参数的多态 parametric polymorphism 粗略的讲，通用的编程</li>
+
+<li>（本地）类型推断 (local)type inference 粗略的讲，为什么要写 val i: Int = 12 :Int 呢</li>
+
+<li>存在的定量 existential quantification 粗略的讲，为一些未命名的类型定义一些东西</li>
+
+<li>视图 view 我们下节课将会学习，粗略的讲，一个类型到另一个类型的值的可塑性</li>
+</ul>
+
+<h2 id='id190'>参数的多态</h2>
+
+<p>多态用来写没有丰富的静态类型组合的一般性代码（为不同的类型值）。</p>
+
+<p>比如，没有参数多态，一个普通的list 数据应该看起来这样（这看起来确实很像Java 的泛型）：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; 2 :: 1 :: <span class='s2'>&quot;bar&quot;</span> :: <span class='s2'>&quot;foo&quot;</span> :: Nil
+res5: List<span class='o'>[</span>Any<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 1, bar, foo<span class='o'>)</span>
+</code></pre></div>
+<p>现在我们不能回复个体成员的任何信息。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; res5.head
+res6: <span class='nv'>Any</span> <span class='o'>=</span> 2
+</code></pre></div>
+<p>所以我们的应用会进入到一系列的投掷中（asInstanceOf<span />）我们也可能缺少类型安全（因为它们都是动态的）。</p>
+
+<p>多态解决了指定类型变量的问题。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def drop1<span class='o'>[</span>A<span class='o'>](</span>l: List<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>=</span> l.tail
+drop: <span class='o'>[</span>A<span class='o'>](</span>l: List<span class='o'>[</span>A<span class='o'>])</span>List<span class='o'>[</span>A<span class='o'>]</span>
+
+scala&gt; drop1<span class='o'>(</span>List<span class='o'>(</span>1,2,3<span class='o'>))</span>
+res1: List<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>2, 3<span class='o'>)</span>
+</code></pre></div>
+<h3 id='scala_'>Scala 有一级多态</h3>
+
+<p>粗略的讲，这意味着有一些你喜欢在Scala 里面表述的类型概念对于编辑器理解来说却太一般了。假设你有一些函数</p>
+<div class='highlight'><pre><code class='bash'>def toList<span class='o'>[</span>A<span class='o'>](</span>a: A<span class='o'>)</span> <span class='o'>=</span> List<span class='o'>(</span>a<span class='o'>)</span>
+</code></pre></div>
+<p>你通常希望是这样的：</p>
+<div class='highlight'><pre><code class='bash'>def foo<span class='o'>[</span>A, B<span class='o'>](</span>f: <span class='nv'>A</span> <span class='o'>=</span>&gt; List<span class='o'>[</span>A<span class='o'>]</span>,b: B<span class='o'>)</span> <span class='o'>=</span>f<span class='o'>(</span>b<span class='o'>)</span>
+</code></pre></div>
+<p>这是不会被编译通过的，因为所有的类型变量不的不固定在调用的位置。甚至如果你固定为type B。</p>
+<div class='highlight'><pre><code class='bash'>def foo<span class='o'>[</span>A<span class='o'>](</span>f: <span class='nv'>A</span> <span class='o'>=</span>&gt; List<span class='o'>[</span>A<span class='o'>]</span>, i: Int<span class='o'>)</span> <span class='o'>=</span> f<span class='o'>(</span>i<span class='o'>)</span>
+</code></pre></div>
+<p>&#8230;.你会得到一个类型不匹配</p>
+
+<h2 id='id191'>类型推断</h2>
+
+<p>一个传统的反对静态类型的声音是它话费了太多的语句。Scala 通过类型推断减轻了这点。</p>
+
+<p>在函数式编程里面的一个经典的类型推断的方法被Hindley-Milner 提出来，他首先服役于ML。</p>
+
+<p>Scala 的类型推断系统工作起来不太一样，但是它的要义很简单：约束推断，尝试去统一类型。</p>
+
+<p>在Scala 里举例如下：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; <span class='o'>{</span> <span class='nv'>x</span> <span class='o'>=</span>&gt; x <span class='o'>}</span>
+&lt;console&gt;:7 error: missing parameter <span class='nb'>type</span>
+       <span class='o'>{</span> <span class='nv'>x</span> <span class='o'>=</span>&gt; x <span class='o'>}</span>
+</code></pre></div>
+<p>在OCaml 里，你可以：</p>
+<div class='highlight'><pre><code class='bash'><span class='c'># fun x -&gt; x;;</span>
+- : <span class='s1'>&#39;a -&gt; &#39;</span><span class='nv'>a</span> <span class='o'>=</span> &lt;fun&gt;
+</code></pre></div>
+<p>在Scala 里所有的推断都是局部的。Scala 一次只考虑一个表达式。比如：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def id<span class='o'>[</span>T<span class='o'>](</span>x: T<span class='o'>)</span> <span class='o'>=</span> x
+id: <span class='o'>[</span>T<span class='o'>](</span>x: T<span class='o'>)</span>T
+
+scala&gt; val <span class='nv'>x</span> <span class='o'>=</span> id<span class='o'>(</span>322<span class='o'>)</span>
+x: <span class='nv'>Int</span> <span class='o'>=</span> 322
+
+scala&gt; val <span class='nv'>x</span> <span class='o'>=</span> id<span class='o'>(</span><span class='s2'>&quot;hey&quot;</span><span class='o'>)</span>
+x: java.lang.String <span class='o'>=</span> hey
+
+scala&gt; val <span class='nv'>x</span> <span class='o'>=</span> id<span class='o'>(</span>Array<span class='o'>(</span>1,2,3,4<span class='o'>))</span>
+x: Array<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> Array<span class='o'>(</span>1, 2, 3, 4<span class='o'>)</span>
+</code></pre></div>
+<p>类型现在保存了，Scala 编译器为我们推断出来了参数类型。注意我们怎样做不一定明确返回指定类型。</p>
+
+<h2 id='id192'>变化</h2>
+
+<p>Scala 的类型系统不得不和多态来解释class 层级 。Class 层级允许子类型关系的表达式。当混合了OO 和多态时的一个中心的讨论问题是： 如果T&#8217; 是T 的一个子类，Cotainer<span>T&#8217;</span> 是Container<span>T</span> 的子类吗？变化调用允许你的表达式class 层级和部署类型的下列关系。</p>
+<table class='table table-bordered'>
+    <tr>
+        <th>&nbsp;</th>
+        <th>Meaning</th>
+        <th>Scala notation</th>
+    </tr>
+    <tr>
+        <td>covariant</td>
+        <td>C[T'] 是C[T] 的子类</td>
+        <td>[+T]</td>
+    </tr>
+    <tr>
+        <td>contravariant</td>
+        <td>C[T] 是C[T'] 的子类</td>
+        <td>[-T]</td>
+    </tr>
+    <tr>
+        <td>invariant</td>
+        <td>C[T] 和C[T'] 没关系</td>
+        <td>[T]</td>
+    </tr>
+</table>
+<p>子类型的关系意味着：给定类型T，如果T&#8217; 是一个子类型，你能替代他吗？</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class Covariant<span class='o'>[</span>+A<span class='o'>]</span>
+defined calss Covariant
+
+scala&gt; val cv: Covariant<span class='o'>[</span>AnyRef<span class='o'>]</span> <span class='o'>=</span> new Covariant<span class='o'>[</span>String<span class='o'>]</span>
+cv: Covariant<span class='o'>[</span>AnyRef<span class='o'>]</span> <span class='o'>=</span> Covariant@4035acf6
+
+scala&gt; val cv: Covariant<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> new Covariant<span class='o'>[</span>AnyRef<span class='o'>]</span>
+&lt;console&gt;:6: error: <span class='nb'>type </span>mismatch;
+ found   : Covariant<span class='o'>[</span>AnyRef<span class='o'>]</span>
+ required: Covariant<span class='o'>[</span>String<span class='o'>]</span>
+       val cv: Covariant<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> new Covariant<span class='o'>[</span>AnyRef<span class='o'>]</span>
+</code></pre></div><div class='highlight'><pre><code class='bash'>scala&gt; class Contravariant<span class='o'>[</span>-A<span class='o'>]</span>
+defined class Contravariant
+
+scala&gt; val cv: Contravariant<span class='o'>[</span>String<span class='o'>]</span> <span class='o'>=</span> new Contravariant<span class='o'>[</span>AnyRef<span class='o'>]</span>
+cv: Contravariant<span class='o'>[</span>AnyRef<span class='o'>]</span> <span class='o'>=</span> Contravariant@49fa7ba
+
+scala&gt; val fail: Contravariant<span class='o'>[</span>AnyRef<span class='o'>]</span> <span class='o'>=</span> new Contravariant<span class='o'>[</span>String<span class='o'>]</span>
+&lt;console&gt;:6: error: <span class='nb'>type </span>mismatch;
+ found   : Contravariant<span class='o'>[</span>String<span class='o'>]</span>
+ required: Contravariant<span class='o'>[</span>AnyRef<span class='o'>]</span>
+       val fail: Contravariant<span class='o'>[</span>AnyRef<span class='o'>]</span>  <span class='o'>=</span> new Contravariant<span class='o'>[</span>String<span class='o'>]</span>
+                                     ^
+</code></pre></div>
+<p>Contravariance 看起来有点奇怪，什么时候用它？有点让人吃惊！</p>
+<div class='highlight'><pre><code class='bash'>trait Function1 <span class='o'>[</span>-T1, +R<span class='o'>]</span> extends AnyRef
+ 
+</code></pre></div>
+<p>如果你从视图替代物的观点来考虑，它很重要。让我们首先来简单的定义一个calss 层级：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; class Animal <span class='o'>{</span> val <span class='nv'>sound</span> <span class='o'>=</span> <span class='s2'>&quot;rustle&quot;</span> <span class='o'>}</span>
+defined class Animal
+
+scala&gt; class Bird extends Animal <span class='o'>{</span> override val <span class='nv'>sound</span> <span class='o'>=</span> <span class='s2'>&quot;call&quot;</span> <span class='o'>}</span>
+defined class Bird
+
+scala&gt; class Chicken extend Bird <span class='o'>{</span> override val <span class='nv'>sound</span> <span class='o'>=</span> <span class='s2'>&quot;cluck&quot;</span> <span class='o'>}</span>
+defined class Chicken
+</code></pre></div>
+<p>假设你需要一个接受Bird 参数的函数：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val getTweet: <span class='o'>(</span><span class='nv'>Bird</span> <span class='o'>=</span>&gt; String<span class='o'>)</span> <span class='o'>=</span> // TODO
+</code></pre></div>
+<p>标准的animal 库有一个做你想做的函数，不同的是它接受一个Animal 参数。在大多数情形，如果你说，“我需要一个～～我有一个子类～～”，你很好，但是函数参数是contravariant。如果你需要一个接受Bird 的函数，你就会有一个接受Chicken 的函数，函数会选择“Duck”。但是函数也接受Animal ：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val getTweet: <span class='o'>(</span><span class='nv'>Bird</span> <span class='o'>=</span>&gt; String<span class='o'>)</span> <span class='o'>=</span> <span class='o'>((</span>a: Animal<span class='o'>)</span> <span class='o'>=</span>&gt; a.sound <span class='o'>)</span>
+getTweet: <span class='nv'>Bird</span> <span class='o'>=</span>&gt; <span class='nv'>String</span> <span class='o'>=</span> &lt;function1&gt;
+</code></pre></div>
+<p>一个返回covariant 的类型值的函数。如果你需要一个返回Bird 的函数，但是有一个返回Chicken 的函数，非常好：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val hatch: <span class='o'>(()</span> <span class='o'>=</span>&gt; Bird<span class='o'>)</span> <span class='o'>=(()</span> <span class='o'>=</span>&gt; new Chicken <span class='o'>)</span>
+hatch: <span class='o'>()</span> <span class='o'>=</span>&gt; <span class='nv'>Bird</span> <span class='o'>=</span> &lt;function0&gt;
+</code></pre></div>
+<h2 id='id193'>界限</h2>
+
+<p>Scala 允许你使用bounds 来限制多态变量。bounds 表达子类型的关系。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def cacophony<span class='o'>[</span>T<span class='o'>](</span>things: Seq<span class='o'>[</span>T<span class='o'>])</span> <span class='o'>=</span> things map <span class='o'>(</span>_.sound<span class='o'>)</span>
+&lt;console&gt;:7:error:value sound is not a member of <span class='nb'>type </span>parameter T
+       def cacophony<span class='o'>[</span>T<span class='o'>](</span>things: Seq<span class='o'>[</span>T<span class='o'>])</span> <span class='o'>=</span> things map <span class='o'>(</span>_.sound<span class='o'>)</span>
+                                                        ^
+
+scala&gt; def biophony<span class='o'>[</span>T &lt;: Animal<span class='o'>](</span>things: Seq<span class='o'>[</span>T<span class='o'>])</span> <span class='o'>=</span> things map <span class='o'>(</span>_.sound<span class='o'>)</span>
+biophony: <span class='o'>[</span>T &lt;: Animal<span class='o'>](</span>things: Seq<span class='o'>[</span>T<span class='o'>])</span>Seq<span class='o'>[</span>java.lang.String<span class='o'>]</span>
+
+scala&gt; biophony<span class='o'>(</span>Seq<span class='o'>(</span>new Chicken, new Bird<span class='o'>))</span>
+res5: Seq<span class='o'>[</span>java.lang.String<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>cluck,call<span class='o'>)</span>
+</code></pre></div>
+<p>低等级的bounds 也被支持，它们和contravariance 和clever covariance迟早会有用。List<span>+T</span> 是covariant; 一个Birds 列表是一个Animals 列表。List 定义了一个操作::(elem T)返回一个含有elem 的新List。新Lift 有相同的原始类型。</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; val <span class='nv'>flock</span> <span class='o'>=</span> List<span class='o'>(</span>new Bird, new Bird<span class='o'>)</span>
+flock: List<span class='o'>[</span>Bird<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>Bird@7e1ec70e, Bird@169ea8d2<span class='o'>)</span>
+
+scala&gt; new Chicken :: flock
+res53: List<span class='o'>[</span>Bird<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>Chicken@56fbda05, Bird@7e1ec70e,Bird@169ea8d2<span class='o'>)</span>
+</code></pre></div>
+<p>List 还定义了::B &gt;: T)，它返回List<span>B</span>。注意B &gt;: T。指定了类型B 是T的超类。这让当考虑一个Animal 到List<span>Bird</span> 时我们使用正确的东西：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; new Animal :: flock
+res59: List<span class='o'>[</span>Animal<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>[</span>Animal@11f8d3a8,Bird@7e1ec70e,Bird@169ea8d2<span class='o'>]</span>
+</code></pre></div>
+<p>注意返回的类型是Animal。</p>
+
+<h2 id='id194'>定量</h2>
+
+<p>有些时候你不关心类型变量的名字，比如</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def count<span class='o'>[</span>A<span class='o'>](</span>l: List<span class='o'>[</span>A<span class='o'>])</span> <span class='o'>=</span> l.size
+count: <span class='o'>[</span>A<span class='o'>](</span>List<span class='o'>[</span>A<span class='o'>])</span>Int
+</code></pre></div>
+<p>作为替代你可以使用wildcards:</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def count<span class='o'>(</span>l: List<span class='o'>[</span>_<span class='o'>])</span> <span class='o'>=</span> l.size
+count: <span class='o'>(</span>List<span class='o'>[</span>_<span class='o'>])</span>Int
+</code></pre></div>
+<p>也可以简写为：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def count<span class='o'>(</span>l: List<span class='o'>[</span>T forSome <span class='o'>{</span> <span class='nb'>type </span>T <span class='o'>}])</span> <span class='o'>=</span> l.size
+count: <span class='o'>(</span>List<span class='o'>[</span>T forSome <span class='o'>{</span> <span class='nb'>type </span>T<span class='o'>}</span> <span class='o'>])</span>Int
+</code></pre></div>
+<p>注意，它也可以耍花招：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def drop<span class='o'>(</span>l: List<span class='o'>[</span>_<span class='o'>])</span> <span class='o'>=</span> l.tail
+drop1: <span class='o'>(</span>List<span class='o'>[</span>_<span class='o'>])</span>List<span class='o'>[</span>Any<span class='o'>]</span>
+</code></pre></div>
+<p>我们突然失去了类型信息！来看看继续发生什么，恢复到笨手笨脚的语法：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def drop1<span class='o'>(</span>l: List<span class='o'>[</span>T forSome <span class='o'>{</span> <span class='nb'>type </span>T <span class='o'>}])</span> <span class='o'>=</span> l.tail
+drop1:<span class='o'>(</span>List<span class='o'>[</span>T forSome <span class='o'>{</span> <span class='nb'>type </span>T <span class='o'>}])</span>List<span class='o'>[</span>T forSome <span class='o'>{</span> <span class='nb'>type </span>T<span class='o'>}]</span>
+</code></pre></div>
+<p>我们没有看到关于T 的任何东西，因为类型不允许。</p>
+
+<p>你也可能应用bounds 到wildcard 类型变量上：</p>
+<div class='highlight'><pre><code class='bash'>scala&gt; def hashcode<span class='o'>(</span>l: Seq<span class='o'>[</span>_ &lt;: AnyRef<span class='o'>])</span> <span class='o'>=</span> l map <span class='o'>(</span>_.hashCode<span class='o'>)</span>
+hashcodes: <span class='o'>(</span>Seq<span class='o'>[</span>_ &lt;: AnyRef<span class='o'>])</span>Seq<span class='o'>[</span>Int<span class='o'>]</span>
+
+scala&gt; hashcodes<span class='o'>(</span>Seq<span class='o'>(</span>1,2,3<span class='o'>))</span>
+&lt;console&gt;:7: error: <span class='nb'>type </span>mismatch;
+ found   : Int<span class='o'>(</span>1<span class='o'>)</span>
+ required: ANyRef
+ Note: primitive types are not implicitle converted to AnyRef,
+ You and safely force boxing by casting x.asInstanceOf<span class='o'>[</span>AnyRef<span class='o'>]</span>,
+        hashcodes<span class='o'>(</span>Seq<span class='o'>(</span>1,2,3<span class='o'>))</span>
+                      ^
+
+scala&gt; hashcodes<span class='o'>(</span>Seq<span class='o'>(</span><span class='s2'>&quot;one&quot;</span>,<span class='s2'>&quot;two&quot;</span>,<span class='s2'>&quot;three&quot;</span><span class='o'>))</span>
+res1: Seq<span class='o'>[</span>Int<span class='o'>]</span> <span class='o'>=</span> List<span class='o'>(</span>110182, 115276, 110339486<span class='o'>)</span>
+</code></pre></div>
+<p>也可以看看<a href='http://www.drmaciver.com/2008/03/existential-types-in-scala/'>Existential types in Scala by D. R. Maclver</a></p>
+</div>
+
+        </div>
+
+        <div id="footer">
+          <div class="inner">
+            <div class="container">
+              <p>
+                由<a href="http://twitter.com/twitter" target="_blank">@twitter</a> 的<a href="http://twitter.com/stevej" target="_blank">@stevej</a>, <a href="http://twitter.com/marius" target="_blank">@marius</a> 构建，特别感谢 <a href="http://twitter.com/lahosken" target="_blank">@lahosken</a>  的 <a href="http://twitter.com/evanm" target="_blank">@evanm</a>，<a href="http://twitter.com/sprsquish" target="_blank">@sprsquish</a>，<a href="http://twitter.com/kevino" target="_blank">@kevino</a>，<a href="http://twitter.com/zuercher" target="_blank">@zuercher</a>，<a href="http://twitter.com/timtrueman" target="_blank">@timtrueman</a>，<a href="http://twitter.com/wickman" target="_blank">@wickman</a> 和<a href="http://twitter.com/mccv" target="_blank">@mccv</a>; 俄语由 <a href="https://github.com/appigram">appigram</a> 翻译<br>
+                开源依照 <a href="http://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License v2.0</a>.
+              </p>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>
